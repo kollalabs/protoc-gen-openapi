@@ -167,7 +167,7 @@ func (g *OpenAPIv3Generator) addPathsToDocumentV3(d *v3.Document, file *protogen
 			comment := g.filterCommentString(method.Comments.Leading, false)
 			inputMessage := method.Input
 			outputMessage := method.Output
-			operationID := service.GoName + "_" + method.GoName
+			operationID := method.GoName
 			xt := annotations.E_Http
 			extension := proto.GetExtension(method.Desc.Options(), xt)
 			var path string
