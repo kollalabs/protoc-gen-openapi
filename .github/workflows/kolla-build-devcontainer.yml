@@ -1,0 +1,75 @@
+name: Setup Devcontainer
+
+on:
+  workflow_call:
+    outputs:
+      devcontainer-image:
+        description: "Devcontainer image path to use"
+        value: ${{ jobs.has-changes.outputs.devcontainer-image }}
+
+jobs:
+  has-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      has-changes: ${{ steps.changes.outputs.has-changes }}
+      devcontainer-image: ${{ steps.changes.outputs.devcontainer-image }}
+
+    steps:
+      - name: Checkout current branch
+        uses: actions/checkout@v2
+
+      - name: Check if devcontainer has changed
+        id: changes
+        shell: bash
+        run: |
+          set -ux
+          set +e
+
+          git fetch --depth 1 origin main
+          git diff --exit-code --name-only origin/main ./.devcontainer
+          STATUS=$?
+          set -e
+
+          if [ $STATUS -eq 0 ]; then
+            echo "::set-output name=has-changes::false"
+            echo "::set-output name=devcontainer-image::ghcr.io/kollalabs/protoc-gen-openapi:devcontainer"
+          else
+            echo "::set-output name=has-changes::true"
+            echo "::set-output name=devcontainer-image::ghcr.io/kollalabs/protoc-gen-openapi:devcontainer"
+          fi
+
+  build:
+    runs-on: ubuntu-latest
+    needs:
+      - has-changes
+    if: ${{ needs.has-changes.outputs.has-changes == 'true' }}
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install devcontainer CLI tool
+        run: |
+          npm install -g @vscode/dev-container-cli
+
+      - name: Set up Docker BuildKit
+        uses: docker/setup-buildx-action@v1
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish the devcontainer
+        run: |
+          set -eux
+
+          IMAGE=${{ needs.has-changes.outputs.devcontainer-image }}
+          # TODO inject cache from entry for current branch if we're on a branch
+          docker pull ${IMAGE} || true
+
+          #TODO: if we're on a branch inject container image into .devcontainer.json as a cacheFrom target
+          # jq append to build.cacheFrom
+          devcontainer build --image-name=${IMAGE}
+
+          docker push ${IMAGE}

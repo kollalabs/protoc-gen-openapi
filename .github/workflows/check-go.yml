@@ -1,0 +1,29 @@
+name: Run go tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  devcontainer:
+    uses: kollalabs/protoc-gen-openapi/.github/workflows/kolla-build-devcontainer.yml@main
+
+  check-gen:
+    runs-on: ubuntu-latest
+    needs:
+      - devcontainer
+    container:
+      image: ${{ needs.devcontainer.outputs.devcontainer-image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.JASON_GHCR_READ_20221221 }}
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Go build and Test
+        shell: bash
+        run: |
+          # load the devcontainer dockerfile and run the generate commands
+          # make sure that git isn't dirty after running generate
