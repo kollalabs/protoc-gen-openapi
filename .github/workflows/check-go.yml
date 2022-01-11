@@ -30,6 +30,8 @@ jobs:
           # make sure that git isn't dirty after running generate
           whoami
           echo $UID
+          id
+
           ls -l -l /go/pkg/mod/cache/download/google.golang.org
 
           go build
