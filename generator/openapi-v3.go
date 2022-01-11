@@ -167,7 +167,8 @@ func (g *OpenAPIv3Generator) addPathsToDocumentV3(d *v3.Document, file *protogen
 			comment := g.filterCommentString(method.Comments.Leading, false)
 			inputMessage := method.Input
 			outputMessage := method.Output
-			operationID := method.GoName
+			summary := method.GoName
+			operationID := service.GoName + "_" + method.GoName
 			xt := annotations.E_Http
 			extension := proto.GetExtension(method.Desc.Options(), xt)
 			var path string
@@ -202,7 +203,7 @@ func (g *OpenAPIv3Generator) addPathsToDocumentV3(d *v3.Document, file *protogen
 			}
 			if methodName != "" {
 				op, path2 := g.buildOperationV3(
-					file, operationID, service.GoName, comment, path, body, inputMessage, outputMessage)
+					file, summary, operationID, service.GoName, comment, path, body, inputMessage, outputMessage)
 				g.addOperationV3(d, op, path2, methodName)
 			}
 		}
@@ -277,6 +278,7 @@ func (g *OpenAPIv3Generator) findAndFormatFieldName(name string, inMessage *prot
 // buildOperationV3 constructs an operation for a set of values.
 func (g *OpenAPIv3Generator) buildOperationV3(
 	file *protogen.File,
+	summary string,
 	operationID string,
 	tagName string,
 	description string,
@@ -423,6 +425,7 @@ func (g *OpenAPIv3Generator) buildOperationV3(
 	op := &v3.Operation{
 		Tags:        []string{tagName},
 		Description: description,
+		Summary:     summary,
 		OperationId: operationID,
 		Parameters:  parameters,
 		Responses:   responses,

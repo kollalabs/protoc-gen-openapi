@@ -10,7 +10,8 @@ paths:
         patch:
             tags:
                 - Messaging
-            operationId: UpdateMessage
+            summary: UpdateMessage
+            operationId: Messaging_UpdateMessage
             parameters:
                 - name: messageId
                   in: path

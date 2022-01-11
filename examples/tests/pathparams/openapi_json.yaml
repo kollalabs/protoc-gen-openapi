@@ -10,7 +10,8 @@ paths:
         get:
             tags:
                 - Messaging
-            operationId: GetMessage
+            summary: GetMessage
+            operationId: Messaging_GetMessage
             parameters:
                 - name: messageId
                   in: path
@@ -31,7 +32,8 @@ paths:
         post:
             tags:
                 - Messaging
-            operationId: CreateMessage
+            summary: CreateMessage
+            operationId: Messaging_CreateMessage
             parameters:
                 - name: messageId
                   in: path
@@ -55,7 +57,8 @@ paths:
         get:
             tags:
                 - Messaging
-            operationId: GetUserMessage
+            summary: GetUserMessage
+            operationId: Messaging_GetUserMessage
             parameters:
                 - name: userId
                   in: path
