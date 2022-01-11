@@ -11,7 +11,7 @@ paths:
         post:
             tags:
                 - Messaging
-            operationId: Messaging_CreateMessage
+            operationId: CreateMessage
             parameters:
                 - name: message_id
                   in: path
@@ -38,7 +38,7 @@ paths:
         patch:
             tags:
                 - Messaging
-            operationId: Messaging_UpdateMessage
+            operationId: UpdateMessage
             parameters:
                 - name: message_id
                   in: path

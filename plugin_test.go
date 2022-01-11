@@ -15,6 +15,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path"
@@ -40,8 +41,7 @@ func TestOpenAPIProtobufNaming(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Run protoc and the protoc-gen-openapi plugin to generate an OpenAPI spec.
 			err := exec.Command("protoc",
-				"-I", "../../",
-				"-I", "../../third_party",
+				"-I", "./",
 				"-I", "examples",
 				path.Join(tt.path, tt.protofile),
 				"--openapi_out=naming=proto:.").Run()
@@ -64,17 +64,18 @@ func TestOpenAPIJSONNaming(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Run protoc and the protoc-gen-openapi plugin to generate an OpenAPI spec with JSON naming.
 			err := exec.Command("protoc",
-				"-I", "../../",
-				"-I", "../../third_party",
+				"-I", "./",
 				"-I", "examples",
 				path.Join(tt.path, tt.protofile),
 				"--openapi_out=version=1.2.3:.").Run()
 			if err != nil {
 				t.Fatalf("protoc failed: %+v", err)
 			}
+
 			// Verify that the generated spec matches our expected version.
-			err = exec.Command("diff", "openapi.yaml", path.Join(tt.path, "openapi_json.yaml")).Run()
+			output, err := exec.Command("diff", "openapi.yaml", path.Join(tt.path, "openapi_json.yaml")).CombinedOutput()
 			if err != nil {
+				fmt.Println(string(output))
 				t.Fatalf("Diff failed: %+v", err)
 			}
 			// if the test succeeded, clean up
