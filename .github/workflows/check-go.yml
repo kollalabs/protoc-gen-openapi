@@ -27,3 +27,9 @@ jobs:
         run: |
           # load the devcontainer dockerfile and run the generate commands
           # make sure that git isn't dirty after running generate
+
+          go build
+
+          go vet
+
+          go test

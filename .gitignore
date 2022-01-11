@@ -1,4 +1,4 @@
-./protoc-gen-openapi
+/protoc-gen-openapi
 
 # General
 .DS_Store
