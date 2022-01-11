@@ -10,7 +10,7 @@ paths:
         get:
             tags:
                 - Messaging
-            operationId: Messaging_GetMessage
+            operationId: GetMessage
             parameters:
                 - name: messageId
                   in: path
@@ -39,7 +39,7 @@ paths:
         post:
             tags:
                 - Messaging
-            operationId: Messaging_CreateMessage
+            operationId: CreateMessage
             parameters:
                 - name: messageId
                   in: path
@@ -62,7 +62,7 @@ paths:
         patch:
             tags:
                 - Messaging
-            operationId: Messaging_UpdateMessage
+            operationId: UpdateMessage
             parameters:
                 - name: messageId
                   in: path

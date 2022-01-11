@@ -379,6 +379,9 @@ func (g *OpenAPIv3Generator) buildOperationV3(
 				bodyFieldName := g.formatFieldName(field)
 				// Get the field description from the comments.
 				fieldDescription := g.filterCommentString(field.Comments.Leading, true)
+
+				parameterType := "string"
+
 				parameters = append(parameters,
 					&v3.ParameterOrReference{
 						Oneof: &v3.ParameterOrReference_Parameter{
@@ -390,7 +393,7 @@ func (g *OpenAPIv3Generator) buildOperationV3(
 								Schema: &v3.SchemaOrReference{
 									Oneof: &v3.SchemaOrReference_Schema{
 										Schema: &v3.Schema{
-											Type: "string",
+											Type: parameterType,
 										},
 									},
 								},
