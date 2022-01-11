@@ -382,7 +382,8 @@ func (g *OpenAPIv3Generator) buildOperationV3(
 				// Get the field description from the comments.
 				fieldDescription := g.filterCommentString(field.Comments.Leading, true)
 
-				parameterType := "string"
+				schema := g.schemaOrReferenceForField(field.Desc)
+				schema = coalesceToStringSchema(schema, "number", "integer")
 
 				parameters = append(parameters,
 					&v3.ParameterOrReference{
@@ -392,13 +393,7 @@ func (g *OpenAPIv3Generator) buildOperationV3(
 								In:          "query",
 								Description: fieldDescription,
 								Required:    false,
-								Schema: &v3.SchemaOrReference{
-									Oneof: &v3.SchemaOrReference_Schema{
-										Schema: &v3.Schema{
-											Type: parameterType,
-										},
-									},
-								},
+								Schema:      schema,
 							},
 						},
 					})
@@ -803,4 +798,26 @@ func singular(plural string) string {
 		return strings.TrimSuffix(plural, "s")
 	}
 	return plural
+}
+
+func coalesceToStringSchema(schema *v3.SchemaOrReference, allowed ...string) *v3.SchemaOrReference {
+
+	stringSchema := &v3.SchemaOrReference{
+		Oneof: &v3.SchemaOrReference_Schema{
+			Schema: &v3.Schema{
+				Type: "string",
+			},
+		},
+	}
+
+	switch t := schema.GetOneof().(type) {
+	case *v3.SchemaOrReference_Schema:
+		for _, v := range allowed {
+			if t.Schema.Type == v {
+				return schema
+			}
+		}
+	}
+	return stringSchema
+
 }
