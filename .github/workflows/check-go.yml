@@ -16,7 +16,7 @@ jobs:
       - devcontainer
     container:
       image: ${{ needs.devcontainer.outputs.devcontainer-image }}
-      options: --user vscode
+      options: --user 1000
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GHCR }}
@@ -29,7 +29,7 @@ jobs:
           # load the devcontainer dockerfile and run the generate commands
           # make sure that git isn't dirty after running generate
           whoami
-          echo $UID
+          cat /etc/passwd
           id
 
           ls -l -l /go/pkg/mod/cache/download/google.golang.org
