@@ -38,8 +38,6 @@ RUN PB_REL="https://github.com/protocolbuffers/protobuf/releases" && \
   chmod +x /usr/local/bin/protoc && \
   rm -f protoc-${VERSION}-linux-${ARCH}.zip
 
-ENV GOPRIVATE="${GOPRIVATE},github.com/kollalabs"
-
 USER vscode
 
 RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.27.1

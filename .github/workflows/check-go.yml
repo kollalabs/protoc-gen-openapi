@@ -18,7 +18,7 @@ jobs:
       image: ${{ needs.devcontainer.outputs.devcontainer-image }}
       credentials:
         username: ${{ github.actor }}
-        password: ${{ secrets.JASON_GHCR_READ_20221221 }}
+        password: ${{ secrets.GHCR }}
 
     steps:
       - uses: actions/checkout@v2
