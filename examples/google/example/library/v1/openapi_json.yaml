@@ -325,6 +325,7 @@ components:
         Book:
             properties:
                 name:
+                    pattern: ^shelves/[a-z2-7]{26}/books/[a-z2-7]{26}$
                     type: string
                     description: The resource name of the book. Book names have the form `shelves/{shelf_id}/books/{book_id}`. The name is ignored when creating a book.
                 author:
@@ -395,6 +396,7 @@ components:
         Shelf:
             properties:
                 name:
+                    pattern: ^shelves/[a-z2-7]{26}$
                     type: string
                     description: The resource name of the shelf. Shelf names have the form `shelves/{shelf_id}`. The name is ignored when creating a shelf.
                 theme:
