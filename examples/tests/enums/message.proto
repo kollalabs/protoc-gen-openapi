@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package tests.enums.message.v1;
+
+import "google/api/annotations.proto";
+
+option go_package = "github.com/kollalabs/protoc-gen-openapi/examples/tests/pathparams/message/v1;message";
+
+service Messaging {
+  rpc GetMessage(GetMessageRequest) returns (Message) {
+    option (google.api.http) = {
+      get : "/v1/messages/{message_id}"
+    };
+  }
+}
+
+message GetMessageRequest {
+  string message_id = 1;
+}
+
+message Message {
+  string message_id = 1;
+  string user_id = 2;
+  string content = 3;
+
+  enum Status {
+    // Default
+    Status_UNSPECIFIED = 0;
+    // Approved
+    Approved = 1;
+    // Pending
+    Pending = 2;
+  }
+  
+  Status status = 4;
+}

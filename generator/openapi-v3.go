@@ -659,9 +659,7 @@ func (g *OpenAPIv3Generator) schemaOrReferenceForField(field protoreflect.FieldD
 				Schema: &v3.Schema{Type: "integer", Format: kind.String()}}}
 
 	case protoreflect.EnumKind:
-		kindSchema = &v3.SchemaOrReference{
-			Oneof: &v3.SchemaOrReference_Schema{
-				Schema: &v3.Schema{Type: "integer", Format: "enum"}}}
+		kindSchema = g.enumKindSchema(field)
 
 	case protoreflect.BoolKind:
 		kindSchema = &v3.SchemaOrReference{
