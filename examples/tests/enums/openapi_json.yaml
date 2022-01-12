@@ -34,7 +34,11 @@ components:
                 userId:
                     type: string
                 content:
+                    nullable: true
                     type: string
+                allowed:
+                    nullable: true
+                    type: boolean
                 status:
                     enum:
                         - APPROVED

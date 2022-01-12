@@ -584,6 +584,8 @@ func (g *OpenAPIv3Generator) responseContentForMessage(outputMessage *protogen.M
 }
 
 func (g *OpenAPIv3Generator) schemaOrReferenceForType(typeName string) *v3.SchemaOrReference {
+	log.Println("dealing with type name", typeName)
+
 	switch typeName {
 
 	case ".google.protobuf.Timestamp":
@@ -613,6 +615,32 @@ func (g *OpenAPIv3Generator) schemaOrReferenceForType(typeName string) *v3.Schem
 	case ".google.protobuf.Empty":
 		// Empty is close to JSON undefined than null, so ignore this field
 		return nil //&v3.SchemaOrReference{Oneof: &v3.SchemaOrReference_Schema{Schema: &v3.Schema{Type: "null"}}}
+
+	case ".google.protobuf.BoolValue":
+		return &v3.SchemaOrReference{
+			Oneof: &v3.SchemaOrReference_Schema{
+				Schema: &v3.Schema{Type: "boolean", Nullable: true}}}
+
+	case ".google.protobuf.BytesValue":
+		return &v3.SchemaOrReference{
+			Oneof: &v3.SchemaOrReference_Schema{
+				Schema: &v3.Schema{Type: "string", Format: "bytes", Nullable: true}}}
+
+	case ".google.protobuf.DoubleValue", ".google.protobuf.FloatValue":
+		return &v3.SchemaOrReference{
+			Oneof: &v3.SchemaOrReference_Schema{
+				Schema: &v3.Schema{Type: "number", Nullable: true, Format: "float"}}} // TODO: put the correct format here
+
+	case ".google.protobuf.Int64Value", ".google.protobuf.UInt64Value",
+		".google.protobuf.Int32Value", ".google.protobuf.UInt32Value":
+		return &v3.SchemaOrReference{
+			Oneof: &v3.SchemaOrReference_Schema{
+				Schema: &v3.Schema{Type: "integer", Nullable: true}}} // TODO: put the correct format here
+
+	case ".google.protobuf.StringValue":
+		return &v3.SchemaOrReference{
+			Oneof: &v3.SchemaOrReference_Schema{
+				Schema: &v3.Schema{Type: "string", Nullable: true}}}
 
 	default:
 		ref := g.schemaReferenceForTypeName(typeName)
