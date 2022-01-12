@@ -158,20 +158,6 @@ func (g *OpenAPIv3Generator) filterCommentString(c protogen.Comments, removeNewL
 	return strings.TrimSpace(comment)
 }
 
-// filterCommentStringForSummary prepares comment (or method name if there is no comment) for summary value on methods
-func (g *OpenAPIv3Generator) filterCommentStringForSummary(c protogen.Comments, goName string) string {
-	r := regexp.MustCompile(`\n|,|\.`)
-
-	comment := string(c)
-	split := r.Split(comment, 2)
-	comment = g.linterRulePattern.ReplaceAllString(split[0], "")
-	comment = strings.TrimSpace(comment)
-	if comment == "" {
-		comment = strings.TrimSpace(goName)
-	}
-	return comment
-}
-
 // addPathsToDocumentV3 adds paths from a specified file descriptor.
 func (g *OpenAPIv3Generator) addPathsToDocumentV3(d *v3.Document, file *protogen.File) {
 	for _, service := range file.Services {
@@ -181,7 +167,7 @@ func (g *OpenAPIv3Generator) addPathsToDocumentV3(d *v3.Document, file *protogen
 			comment := g.filterCommentString(method.Comments.Leading, false)
 			inputMessage := method.Input
 			outputMessage := method.Output
-			summary := g.filterCommentStringForSummary(method.Comments.Leading, method.GoName)
+			summary := method.GoName
 			operationID := service.GoName + "_" + method.GoName
 			xt := annotations.E_Http
 			extension := proto.GetExtension(method.Desc.Options(), xt)

@@ -20,7 +20,7 @@ paths:
         get:
             tags:
                 - LibraryService
-            summary: Lists shelves
+            summary: ListShelves
             description: |-
                 Lists shelves. The order is unspecified but deterministic. Newly created
                  shelves will not necessarily be added to the end of this list.
@@ -47,7 +47,7 @@ paths:
         post:
             tags:
                 - LibraryService
-            summary: Creates a shelf
+            summary: CreateShelf
             description: Creates a shelf, and returns the new Shelf.
             operationId: LibraryService_CreateShelf
             requestBody:
@@ -67,7 +67,7 @@ paths:
         get:
             tags:
                 - LibraryService
-            summary: Gets a shelf
+            summary: GetShelf
             description: Gets a shelf. Returns NOT_FOUND if the shelf does not exist.
             operationId: LibraryService_GetShelf
             parameters:
@@ -87,7 +87,7 @@ paths:
         delete:
             tags:
                 - LibraryService
-            summary: Deletes a shelf
+            summary: DeleteShelf
             description: Deletes a shelf. Returns NOT_FOUND if the shelf does not exist.
             operationId: LibraryService_DeleteShelf
             parameters:
@@ -105,7 +105,7 @@ paths:
         get:
             tags:
                 - LibraryService
-            summary: Lists books in a shelf
+            summary: ListBooks
             description: |-
                 Lists books in a shelf. The order is unspecified but deterministic. Newly
                  created books will not necessarily be added to the end of this list.
@@ -139,7 +139,7 @@ paths:
         post:
             tags:
                 - LibraryService
-            summary: Creates a book
+            summary: CreateBook
             description: Creates a book, and returns the new Book.
             operationId: LibraryService_CreateBook
             parameters:
@@ -166,7 +166,7 @@ paths:
         get:
             tags:
                 - LibraryService
-            summary: Gets a book
+            summary: GetBook
             description: Gets a book. Returns NOT_FOUND if the book does not exist.
             operationId: LibraryService_GetBook
             parameters:
@@ -192,7 +192,7 @@ paths:
         put:
             tags:
                 - LibraryService
-            summary: Updates a book
+            summary: UpdateBook
             description: |-
                 Updates a book. Returns INVALID_ARGUMENT if the name of the book
                  is non-empty and does not equal the existing name.
@@ -231,7 +231,7 @@ paths:
         delete:
             tags:
                 - LibraryService
-            summary: Deletes a book
+            summary: DeleteBook
             description: Deletes a book. Returns NOT_FOUND if the book does not exist.
             operationId: LibraryService_DeleteBook
             parameters:
@@ -255,7 +255,7 @@ paths:
         post:
             tags:
                 - LibraryService
-            summary: Moves a book to another shelf
+            summary: MoveBook
             description: |-
                 Moves a book to another shelf, and returns the new book. The book
                  id of the new book may not be the same as the original book.
@@ -290,7 +290,7 @@ paths:
         post:
             tags:
                 - LibraryService
-            summary: Merges two shelves by adding all books from the shelf named
+            summary: MergeShelves
             description: |-
                 Merges two shelves by adding all books from the shelf named
                  `other_shelf_name` to shelf `name`, and deletes
