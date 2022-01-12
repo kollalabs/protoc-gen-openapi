@@ -37,8 +37,8 @@ components:
                     type: string
                 status:
                     enum:
-                        - Approved
-                        - Pending
+                        - APPROVED
+                        - PENDING
                     type: string
 tags:
     - name: Messaging

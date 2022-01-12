@@ -25,11 +25,11 @@ message Message {
 
   enum Status {
     // Default
-    Status_UNSPECIFIED = 0;
+    STATUS_UNSPECIFIED = 0;
     // Approved
-    Approved = 1;
+    APPROVED = 1;
     // Pending
-    Pending = 2;
+    PENDING = 2;
   }
   
   Status status = 4;
