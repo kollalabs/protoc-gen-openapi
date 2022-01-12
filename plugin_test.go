@@ -33,19 +33,21 @@ var openapiTests = []struct {
 	{name: "Path params", path: "examples/tests/pathparams/", protofile: "message.proto"},
 	{name: "Protobuf types", path: "examples/tests/protobuftypes/", protofile: "message.proto"},
 	{name: "JSON options", path: "examples/tests/jsonoptions/", protofile: "message.proto"},
-	{name: "Ignore services without annotaions", path: "examples/tests/noannotations/", protofile: "message.proto"},
+	{name: "Ignore services without annotations", path: "examples/tests/noannotations/", protofile: "message.proto"},
+	{name: "Handle enums", path: "examples/tests/enums/", protofile: "message.proto"},
 }
 
 func TestOpenAPIProtobufNaming(t *testing.T) {
 	for _, tt := range openapiTests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Run protoc and the protoc-gen-openapi plugin to generate an OpenAPI spec.
-			err := exec.Command("protoc",
+			out, err := exec.Command("protoc",
 				"-I", "./",
 				"-I", "examples",
 				path.Join(tt.path, tt.protofile),
-				"--openapi_out=naming=proto:.").Run()
+				"--openapi_out=naming=proto:.").CombinedOutput()
 			if err != nil {
+				fmt.Println(string(out))
 				t.Fatalf("protoc failed: %+v", err)
 			}
 			// Verify that the generated spec matches our expected version.
@@ -64,12 +66,13 @@ func TestOpenAPIJSONNaming(t *testing.T) {
 	for _, tt := range openapiTests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Run protoc and the protoc-gen-openapi plugin to generate an OpenAPI spec with JSON naming.
-			err := exec.Command("protoc",
+			out, err := exec.Command("protoc",
 				"-I", "./",
 				"-I", "examples",
 				path.Join(tt.path, tt.protofile),
-				"--openapi_out=version=1.2.3:.").Run()
+				"--openapi_out=version=1.2.3:.").CombinedOutput()
 			if err != nil {
+				fmt.Println(string(out))
 				t.Fatalf("protoc failed: %+v", err)
 			}
 
