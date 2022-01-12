@@ -151,8 +151,25 @@ func (g *OpenAPIv3Generator) buildDocumentV3() *v3.Document {
 // filterCommentString removes line breaks and linter rules from comments.
 func (g *OpenAPIv3Generator) filterCommentString(c protogen.Comments, removeNewLines bool) string {
 	comment := string(c)
+	split := strings.SplitN(comment, "|", 2)
+	if len(split) >= 2 {
+		comment = split[1]
+	}
 	if removeNewLines {
 		comment = strings.Replace(comment, "\n", "", -1)
+	}
+	comment = g.linterRulePattern.ReplaceAllString(comment, "")
+	return strings.TrimSpace(comment)
+}
+
+// filterCommentStringForSummary prepares comment (or method name if there is no comment) for summary value on methods
+func (g *OpenAPIv3Generator) filterCommentStringForSummary(c protogen.Comments, goName string) string {
+	comment := string(c)
+	split := strings.Split(comment, "|")
+	if len(split) >= 2 {
+		comment = split[0]
+	} else {
+		comment = goName
 	}
 	comment = g.linterRulePattern.ReplaceAllString(comment, "")
 	return strings.TrimSpace(comment)
@@ -167,7 +184,7 @@ func (g *OpenAPIv3Generator) addPathsToDocumentV3(d *v3.Document, file *protogen
 			comment := g.filterCommentString(method.Comments.Leading, false)
 			inputMessage := method.Input
 			outputMessage := method.Output
-			summary := method.GoName
+			summary := g.filterCommentStringForSummary(method.Comments.Leading, method.GoName)
 			operationID := service.GoName + "_" + method.GoName
 			xt := annotations.E_Http
 			extension := proto.GetExtension(method.Desc.Options(), xt)
