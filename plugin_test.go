@@ -36,6 +36,7 @@ var openapiTests = []struct {
 	{name: "Ignore services without annotations", path: "examples/tests/noannotations/", protofile: "message.proto"},
 	{name: "Handle enums", path: "examples/tests/enums/", protofile: "message.proto"},
 	{name: "Better summary", path: "examples/tests/summary/", protofile: "message.proto"},
+	{name: "Message name pattern", path: "examples/tests/messagenamepattern/", protofile: "message.proto"},
 }
 
 func TestOpenAPIProtobufNaming(t *testing.T) {

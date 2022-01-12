@@ -746,6 +746,16 @@ func (g *OpenAPIv3Generator) addSchemasToDocumentV3(d *v3.Document, messages []*
 		if message.Messages != nil {
 			g.addSchemasToDocumentV3(d, message.Messages)
 		}
+		xt := annotations.E_Resource
+		extension := proto.GetExtension(message.Desc.Options(), xt)
+		pattern := ""
+
+		if extension != nil && extension != xt.InterfaceOf(xt.Zero()) {
+			rule := extension.(*annotations.ResourceDescriptor)
+			if len(rule.Pattern) > 0 {
+				pattern = rule.Pattern[0]
+			}
+		}
 
 		typeName := fullMessageTypeName(message.Desc)
 		log.Printf("Adding %s", typeName)
@@ -784,8 +794,12 @@ func (g *OpenAPIv3Generator) addSchemasToDocumentV3(d *v3.Document, messages []*
 			if fieldSchema == nil {
 				continue
 			}
-
 			if schema, ok := fieldSchema.Oneof.(*v3.SchemaOrReference_Schema); ok {
+				if field.Desc.Name() == "name" && pattern != "" {
+					pathParamsRX := regexp.MustCompile(`{[a-z_A-Z0-9]*}`)
+					rPattern := "^" + pathParamsRX.ReplaceAllString(pattern, "[a-z2-7]{26}") + "$"
+					schema.Schema.Pattern = rPattern
+				}
 				// Get the field description from the comments.
 				schema.Schema.Description = g.filterCommentString(field.Comments.Leading, true)
 				if outputOnly {
