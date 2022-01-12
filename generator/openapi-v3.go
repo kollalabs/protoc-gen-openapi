@@ -584,7 +584,6 @@ func (g *OpenAPIv3Generator) responseContentForMessage(outputMessage *protogen.M
 }
 
 func (g *OpenAPIv3Generator) schemaOrReferenceForType(typeName string) *v3.SchemaOrReference {
-	log.Println("dealing with type name", typeName)
 
 	switch typeName {
 
