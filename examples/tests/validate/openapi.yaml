@@ -1,0 +1,55 @@
+# Generated with protoc-gen-openapi
+# https://github.com/google/gnostic/tree/master/apps/protoc-gen-openapi
+
+openapi: 3.0.3
+info:
+    title: Messaging API
+    version: 0.0.1
+paths:
+    /v1/messages/{message_id}:
+        patch:
+            tags:
+                - Messaging
+            summary: Update Message Summary
+            description: This function updates a message.
+            operationId: Messaging_UpdateMessage
+            parameters:
+                - name: message_id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: mynum
+                  in: query
+                  schema:
+                    type: integer
+                    format: int64
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            type: string
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Message'
+components:
+    schemas:
+        Message:
+            properties:
+                message_id:
+                    type: string
+                text:
+                    type: string
+                    format: uri
+                mynum:
+                    maximum: !!float 30
+                    minimum: !!float 1
+                    type: integer
+                    format: int64
+tags:
+    - name: Messaging
