@@ -27,16 +27,16 @@ var openapiTests = []struct {
 	path      string
 	protofile string
 }{
-	// {name: "Google Library example", path: "examples/google/example/library/v1/", protofile: "library.proto"},
-	// {name: "Body mapping", path: "examples/tests/bodymapping/", protofile: "message.proto"},
-	// {name: "Map fields", path: "examples/tests/mapfields/", protofile: "message.proto"},
-	// {name: "Path params", path: "examples/tests/pathparams/", protofile: "message.proto"},
-	// {name: "Protobuf types", path: "examples/tests/protobuftypes/", protofile: "message.proto"},
-	// {name: "JSON options", path: "examples/tests/jsonoptions/", protofile: "message.proto"},
-	// {name: "Ignore services without annotations", path: "examples/tests/noannotations/", protofile: "message.proto"},
-	// {name: "Handle enums", path: "examples/tests/enums/", protofile: "message.proto"},
-	// {name: "Better summary", path: "examples/tests/summary/", protofile: "message.proto"},
-	// {name: "Message name pattern", path: "examples/tests/messagenamepattern/", protofile: "message.proto"},
+	{name: "Google Library example", path: "examples/google/example/library/v1/", protofile: "library.proto"},
+	{name: "Body mapping", path: "examples/tests/bodymapping/", protofile: "message.proto"},
+	{name: "Map fields", path: "examples/tests/mapfields/", protofile: "message.proto"},
+	{name: "Path params", path: "examples/tests/pathparams/", protofile: "message.proto"},
+	{name: "Protobuf types", path: "examples/tests/protobuftypes/", protofile: "message.proto"},
+	{name: "JSON options", path: "examples/tests/jsonoptions/", protofile: "message.proto"},
+	{name: "Ignore services without annotations", path: "examples/tests/noannotations/", protofile: "message.proto"},
+	{name: "Handle enums", path: "examples/tests/enums/", protofile: "message.proto"},
+	{name: "Better summary", path: "examples/tests/summary/", protofile: "message.proto"},
+	{name: "Message name pattern", path: "examples/tests/messagenamepattern/", protofile: "message.proto"},
 	{name: "Validate", path: "examples/tests/validate/", protofile: "message.proto"},
 }
 

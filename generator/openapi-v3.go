@@ -857,10 +857,7 @@ func (g *OpenAPIv3Generator) addValidationRules(fieldSchema *v3.SchemaOrReferenc
 	if field.IsMap() {
 		return
 	}
-	if field.IsList() {
-		log.Printf("(TODO) Unsupported field type list: %s", fullMessageTypeName(field.Message()))
-		return
-	}
+
 	log.Println("Check kind of field")
 	kind := field.Kind()
 
@@ -912,6 +909,15 @@ func (g *OpenAPIv3Generator) addValidationRules(fieldSchema *v3.SchemaOrReferenc
 				schema.Schema.Maximum = float64(int64Rules.GetLte())
 			}
 		}
+		int32Rules := fieldRules.GetInt32()
+		if int32Rules != nil {
+			if int32Rules.GetGte() > 0 {
+				schema.Schema.Minimum = float64(int32Rules.GetGte())
+			}
+			if int32Rules.GetLte() > 0 {
+				schema.Schema.Maximum = float64(int32Rules.GetLte())
+			}
+		}
 
 	case protoreflect.EnumKind:
 
@@ -923,6 +929,11 @@ func (g *OpenAPIv3Generator) addValidationRules(fieldSchema *v3.SchemaOrReferenc
 
 	default:
 		log.Printf("(TODO) Unsupported field type: %+v", fullMessageTypeName(field.Message()))
+	}
+
+	if field.IsList() {
+		log.Printf("(TODO) Unsupported field type: list.")
+		return
 	}
 
 }
