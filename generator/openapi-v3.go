@@ -404,6 +404,8 @@ func (g *OpenAPIv3Generator) buildOperationV3(
 				schema := g.schemaOrReferenceForField(field.Desc)
 				schema = coalesceToStringSchema(schema, "number", "integer")
 
+				g.addValidationRules(schema, field.Desc)
+
 				parameters = append(parameters,
 					&v3.ParameterOrReference{
 						Oneof: &v3.ParameterOrReference_Parameter{
@@ -741,104 +743,6 @@ func (g *OpenAPIv3Generator) schemaOrReferenceForField(field protoreflect.FieldD
 	return kindSchema
 }
 
-// addSchemasToDocumentV3 adds info from one file descriptor.
-func (g *OpenAPIv3Generator) addSchemasToDocumentV3(d *v3.Document, messages []*protogen.Message) {
-	// For each message, generate a definition.
-	for _, message := range messages {
-
-		if message.Messages != nil {
-			g.addSchemasToDocumentV3(d, message.Messages)
-		}
-		xt := annotations.E_Resource
-		extension := proto.GetExtension(message.Desc.Options(), xt)
-		pattern := ""
-
-		if extension != nil && extension != xt.InterfaceOf(xt.Zero()) {
-			rule := extension.(*annotations.ResourceDescriptor)
-			if len(rule.Pattern) > 0 {
-				pattern = rule.Pattern[0]
-			}
-		}
-
-		typeName := fullMessageTypeName(message.Desc)
-		log.Printf("Adding %s", typeName)
-
-		// Only generate this if we need it and haven't already generated it.
-		if !contains(g.requiredSchemas, typeName) ||
-			contains(g.generatedSchemas, typeName) {
-			continue
-		}
-		g.generatedSchemas = append(g.generatedSchemas, typeName)
-		// Get the message description from the comments.
-		messageDescription := g.filterCommentString(message.Comments.Leading, true)
-		// Build an array holding the fields of the message.
-		definitionProperties := &v3.Properties{
-			AdditionalProperties: make([]*v3.NamedSchemaOrReference, 0),
-		}
-		for _, field := range message.Fields {
-			// Check the field annotations to see if this is a readonly field.
-			outputOnly := false
-			extension := proto.GetExtension(field.Desc.Options(), annotations.E_FieldBehavior)
-			if extension != nil {
-				switch v := extension.(type) {
-				case []annotations.FieldBehavior:
-					for _, vv := range v {
-						if vv == annotations.FieldBehavior_OUTPUT_ONLY {
-							outputOnly = true
-						}
-					}
-				default:
-					log.Printf("unsupported extension type %T", extension)
-				}
-			}
-
-			// The field is either described by a reference or a schema.
-			fieldSchema := g.schemaOrReferenceForField(field.Desc)
-			if fieldSchema == nil {
-				continue
-			}
-			if schema, ok := fieldSchema.Oneof.(*v3.SchemaOrReference_Schema); ok {
-				if field.Desc.Name() == "name" && pattern != "" {
-					pathParamsRX := regexp.MustCompile(`{[a-z_A-Z0-9]*}`)
-					rPattern := "^" + pathParamsRX.ReplaceAllString(pattern, "[a-z2-7]{26}") + "$"
-					schema.Schema.Pattern = rPattern
-				}
-				// Get the field description from the comments.
-				schema.Schema.Description = g.filterCommentString(field.Comments.Leading, true)
-				if outputOnly {
-					schema.Schema.ReadOnly = true
-				}
-			}
-			log.Println("About to call validate")
-			if *g.conf.Validate {
-				g.addValidationRules(fieldSchema, field.Desc)
-			}
-
-			definitionProperties.AdditionalProperties = append(
-				definitionProperties.AdditionalProperties,
-				&v3.NamedSchemaOrReference{
-					Name:  g.formatFieldName(field),
-					Value: fieldSchema,
-				},
-			)
-		}
-		// Add the schema to the components.schema list.
-		d.Components.Schemas.AdditionalProperties = append(d.Components.Schemas.AdditionalProperties,
-			&v3.NamedSchemaOrReference{
-				Name: g.formatMessageName(message),
-				Value: &v3.SchemaOrReference{
-					Oneof: &v3.SchemaOrReference_Schema{
-						Schema: &v3.Schema{
-							Description: messageDescription,
-							Properties:  definitionProperties,
-						},
-					},
-				},
-			},
-		)
-	}
-}
-
 func (g *OpenAPIv3Generator) addValidationRules(fieldSchema *v3.SchemaOrReference, field protoreflect.FieldDescriptor) {
 	log.Println("Let's validate!")
 	validationRules := proto.GetExtension(field.Options(), validate.E_Rules)
@@ -936,6 +840,104 @@ func (g *OpenAPIv3Generator) addValidationRules(fieldSchema *v3.SchemaOrReferenc
 		return
 	}
 
+}
+
+// addSchemasToDocumentV3 adds info from one file descriptor.
+func (g *OpenAPIv3Generator) addSchemasToDocumentV3(d *v3.Document, messages []*protogen.Message) {
+	// For each message, generate a definition.
+	for _, message := range messages {
+
+		if message.Messages != nil {
+			g.addSchemasToDocumentV3(d, message.Messages)
+		}
+		xt := annotations.E_Resource
+		extension := proto.GetExtension(message.Desc.Options(), xt)
+		pattern := ""
+
+		if extension != nil && extension != xt.InterfaceOf(xt.Zero()) {
+			rule := extension.(*annotations.ResourceDescriptor)
+			if len(rule.Pattern) > 0 {
+				pattern = rule.Pattern[0]
+			}
+		}
+
+		typeName := fullMessageTypeName(message.Desc)
+		log.Printf("Adding %s", typeName)
+
+		// Only generate this if we need it and haven't already generated it.
+		if !contains(g.requiredSchemas, typeName) ||
+			contains(g.generatedSchemas, typeName) {
+			continue
+		}
+		g.generatedSchemas = append(g.generatedSchemas, typeName)
+		// Get the message description from the comments.
+		messageDescription := g.filterCommentString(message.Comments.Leading, true)
+		// Build an array holding the fields of the message.
+		definitionProperties := &v3.Properties{
+			AdditionalProperties: make([]*v3.NamedSchemaOrReference, 0),
+		}
+		for _, field := range message.Fields {
+			// Check the field annotations to see if this is a readonly field.
+			outputOnly := false
+			extension := proto.GetExtension(field.Desc.Options(), annotations.E_FieldBehavior)
+			if extension != nil {
+				switch v := extension.(type) {
+				case []annotations.FieldBehavior:
+					for _, vv := range v {
+						if vv == annotations.FieldBehavior_OUTPUT_ONLY {
+							outputOnly = true
+						}
+					}
+				default:
+					log.Printf("unsupported extension type %T", extension)
+				}
+			}
+
+			// The field is either described by a reference or a schema.
+			fieldSchema := g.schemaOrReferenceForField(field.Desc)
+			if fieldSchema == nil {
+				continue
+			}
+			if schema, ok := fieldSchema.Oneof.(*v3.SchemaOrReference_Schema); ok {
+				if field.Desc.Name() == "name" && pattern != "" {
+					pathParamsRX := regexp.MustCompile(`{[a-z_A-Z0-9]*}`)
+					rPattern := "^" + pathParamsRX.ReplaceAllString(pattern, "[a-z2-7]{26}") + "$"
+					schema.Schema.Pattern = rPattern
+				}
+				// Get the field description from the comments.
+				schema.Schema.Description = g.filterCommentString(field.Comments.Leading, true)
+				if outputOnly {
+					schema.Schema.ReadOnly = true
+				}
+			}
+			log.Println("About to call validate")
+			if *g.conf.Validate {
+				g.addValidationRules(fieldSchema, field.Desc)
+			}
+
+			definitionProperties.AdditionalProperties = append(
+				definitionProperties.AdditionalProperties,
+				&v3.NamedSchemaOrReference{
+					Name:  g.formatFieldName(field),
+					Value: fieldSchema,
+				},
+			)
+		}
+		// Add the schema to the components.schema list.
+		d.Components.Schemas.AdditionalProperties = append(d.Components.Schemas.AdditionalProperties,
+			&v3.NamedSchemaOrReference{
+				Name: g.formatMessageName(message),
+				Value: &v3.SchemaOrReference{
+					Oneof: &v3.SchemaOrReference_Schema{
+						Schema: &v3.Schema{
+							Description: messageDescription,
+							Properties:  definitionProperties,
+						},
+					},
+				},
+			},
+		)
+	}
 }
 
 // contains returns true if an array contains a specified string.
