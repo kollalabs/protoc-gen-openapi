@@ -15,6 +15,9 @@ Usage:
 We have added some features that the Gnostic team most likely doesn't want to add :-)
 Some are fairly Kolla specific, sorry. We try to hide Kolla specific functionality
 in a way that won't trip anyone up.
+
+### Enums
+Enums work better by using string values of proto enums instead of ints.
 ### Summary Field
 
 Sometimes you want more control over certain properties in the OpenAPI manifest. In our
@@ -121,5 +124,5 @@ Int64
 - gte
 - lte
 
-Adding more can easily be done in the function `addValidationRules` in `/generator/openapi.yaml`
+Adding more can easily be done in the function `addValidationRules` in `/generator/openapi-v3.yaml`
 
