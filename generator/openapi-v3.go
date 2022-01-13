@@ -791,7 +791,7 @@ func (g *OpenAPIv3Generator) addValidationRules(fieldSchema *v3.SchemaOrReferenc
 				schema.Schema.MinLength = int64(stringRules.GetMinLen())
 			}
 			if stringRules.GetMaxLen() > 0 {
-				schema.Schema.MaxLength = int64(stringRules.GetMinLen())
+				schema.Schema.MaxLength = int64(stringRules.GetMaxLen())
 			}
 			// Set Pattern
 			if stringRules.GetPattern() != "" {
