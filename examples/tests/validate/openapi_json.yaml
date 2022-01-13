@@ -22,6 +22,8 @@ paths:
                 - name: mynum
                   in: query
                   schema:
+                    maximum: !!float 30
+                    minimum: !!float 1
                     type: integer
                     format: int64
             requestBody:
