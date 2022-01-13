@@ -46,6 +46,8 @@ components:
                 messageId:
                     type: string
                 text:
+                    maxLength: 45
+                    minLength: 1
                     type: string
                     format: uri
                 mynum:

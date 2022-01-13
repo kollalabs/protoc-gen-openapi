@@ -33,6 +33,13 @@ service Messaging {
 }
 message Message {
     string message_id = 1;
-    string text = 2 [(validate.rules).string.uri = true];
+    string text = 2 [
+    (validate.rules)= {
+        string: {
+            uri:true, 
+            max_len:45,
+            min_len:1
+        }
+    }];
     int64 mynum = 3 [(validate.rules).int64 = {gte:1, lte:30}];
 }

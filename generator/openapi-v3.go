@@ -758,6 +758,7 @@ func (g *OpenAPIv3Generator) addValidationRules(fieldSchema *v3.SchemaOrReferenc
 	if !ok {
 		return
 	}
+	//TODO: implement map validation
 	if field.IsMap() {
 		return
 	}
@@ -800,19 +801,7 @@ func (g *OpenAPIv3Generator) addValidationRules(fieldSchema *v3.SchemaOrReferenc
 
 		}
 
-	case protoreflect.Int32Kind, protoreflect.Sint32Kind, protoreflect.Uint32Kind,
-		protoreflect.Int64Kind, protoreflect.Sint64Kind, protoreflect.Uint64Kind,
-		protoreflect.Sfixed32Kind, protoreflect.Fixed32Kind, protoreflect.Sfixed64Kind,
-		protoreflect.Fixed64Kind:
-		int64Rules := fieldRules.GetInt64()
-		if int64Rules != nil {
-			if int64Rules.GetGte() > 0 {
-				schema.Schema.Minimum = float64(int64Rules.GetGte())
-			}
-			if int64Rules.GetLte() > 0 {
-				schema.Schema.Maximum = float64(int64Rules.GetLte())
-			}
-		}
+	case protoreflect.Int32Kind:
 		int32Rules := fieldRules.GetInt32()
 		if int32Rules != nil {
 			if int32Rules.GetGte() > 0 {
@@ -822,6 +811,21 @@ func (g *OpenAPIv3Generator) addValidationRules(fieldSchema *v3.SchemaOrReferenc
 				schema.Schema.Maximum = float64(int32Rules.GetLte())
 			}
 		}
+	case protoreflect.Int64Kind:
+		int64Rules := fieldRules.GetInt64()
+		if int64Rules != nil {
+			if int64Rules.GetGte() > 0 {
+				schema.Schema.Minimum = float64(int64Rules.GetGte())
+			}
+			if int64Rules.GetLte() > 0 {
+				schema.Schema.Maximum = float64(int64Rules.GetLte())
+			}
+		}
+	//TODO:
+	case protoreflect.Sint32Kind, protoreflect.Uint32Kind,
+		protoreflect.Sint64Kind, protoreflect.Uint64Kind,
+		protoreflect.Sfixed32Kind, protoreflect.Fixed32Kind, protoreflect.Sfixed64Kind,
+		protoreflect.Fixed64Kind:
 
 	case protoreflect.EnumKind:
 
