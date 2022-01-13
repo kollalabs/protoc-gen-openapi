@@ -30,6 +30,7 @@ func main() {
 		Title:       flags.String("title", "", "name of the API"),
 		Description: flags.String("description", "", "description of the API"),
 		Naming:      flags.String("naming", "json", `naming convention. Use "proto" for passing names directly from the proto files`),
+		Validate:    flags.Bool("validate", false, "parse protoc-gen-validate options that are supported into openapi field options"),
 	}
 
 	opts := protogen.Options{

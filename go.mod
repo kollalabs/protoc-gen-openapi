@@ -9,6 +9,7 @@ require (
 )
 
 require (
+	github.com/envoyproxy/protoc-gen-validate v0.6.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
 )
