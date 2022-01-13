@@ -22,6 +22,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/envoyproxy/protoc-gen-validate/validate"
 	"google.golang.org/genproto/googleapis/api/annotations"
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/proto"
@@ -35,6 +36,7 @@ type Configuration struct {
 	Title       *string
 	Description *string
 	Naming      *string
+	Validate    *bool
 }
 
 const infoURL = "https://github.com/google/gnostic/tree/master/apps/protoc-gen-openapi"
@@ -690,6 +692,7 @@ func (g *OpenAPIv3Generator) schemaOrReferenceForField(field protoreflect.FieldD
 		}
 
 	case protoreflect.StringKind:
+
 		kindSchema = &v3.SchemaOrReference{
 			Oneof: &v3.SchemaOrReference_Schema{
 				Schema: &v3.Schema{Type: "string"}}}
@@ -806,6 +809,10 @@ func (g *OpenAPIv3Generator) addSchemasToDocumentV3(d *v3.Document, messages []*
 					schema.Schema.ReadOnly = true
 				}
 			}
+			log.Println("About to call validate")
+			if *g.conf.Validate {
+				g.addValidationRules(fieldSchema, field.Desc)
+			}
 
 			definitionProperties.AdditionalProperties = append(
 				definitionProperties.AdditionalProperties,
@@ -830,6 +837,94 @@ func (g *OpenAPIv3Generator) addSchemasToDocumentV3(d *v3.Document, messages []*
 			},
 		)
 	}
+}
+
+func (g *OpenAPIv3Generator) addValidationRules(fieldSchema *v3.SchemaOrReference, field protoreflect.FieldDescriptor) {
+	log.Println("Let's validate!")
+	validationRules := proto.GetExtension(field.Options(), validate.E_Rules)
+	if validationRules == nil {
+		return
+	}
+	fieldRules, ok := validationRules.(*validate.FieldRules)
+	if !ok {
+		return
+	}
+	log.Println("Found some rules... let's go!")
+	schema, ok := fieldSchema.Oneof.(*v3.SchemaOrReference_Schema)
+	if !ok {
+		return
+	}
+	if field.IsMap() {
+		return
+	}
+	if field.IsList() {
+		log.Printf("(TODO) Unsupported field type list: %s", fullMessageTypeName(field.Message()))
+		return
+	}
+	log.Println("Check kind of field")
+	kind := field.Kind()
+
+	switch kind {
+
+	case protoreflect.MessageKind:
+		return // TO DO: Implement message validators from protoc-gen-validate
+
+	case protoreflect.StringKind:
+		log.Println("String kind!!!")
+		stringRules := fieldRules.GetString_()
+		if stringRules != nil {
+			// Set Format
+			if stringRules.GetUri() {
+				schema.Schema.Format = "uri"
+			} else if stringRules.GetEmail() {
+				schema.Schema.Format = "email"
+			} else if stringRules.GetIpv4() {
+				schema.Schema.Format = "ipv4"
+			} else if stringRules.GetIpv6() {
+				schema.Schema.Format = "ipv6"
+			} else if stringRules.GetUuid() {
+				schema.Schema.Format = "uuid"
+			}
+			// Set min/max
+			if stringRules.GetMinLen() > 0 {
+				schema.Schema.MinLength = int64(stringRules.GetMinLen())
+			}
+			if stringRules.GetMaxLen() > 0 {
+				schema.Schema.MaxLength = int64(stringRules.GetMinLen())
+			}
+			// Set Pattern
+			if stringRules.GetPattern() != "" {
+				schema.Schema.Pattern = stringRules.GetPattern()
+			}
+
+		}
+
+	case protoreflect.Int32Kind, protoreflect.Sint32Kind, protoreflect.Uint32Kind,
+		protoreflect.Int64Kind, protoreflect.Sint64Kind, protoreflect.Uint64Kind,
+		protoreflect.Sfixed32Kind, protoreflect.Fixed32Kind, protoreflect.Sfixed64Kind,
+		protoreflect.Fixed64Kind:
+		int64Rules := fieldRules.GetInt64()
+		if int64Rules != nil {
+			if int64Rules.GetGte() > 0 {
+				schema.Schema.Minimum = float64(int64Rules.GetGte())
+			}
+			if int64Rules.GetLte() > 0 {
+				schema.Schema.Maximum = float64(int64Rules.GetLte())
+			}
+		}
+
+	case protoreflect.EnumKind:
+
+	case protoreflect.BoolKind:
+
+	case protoreflect.FloatKind, protoreflect.DoubleKind:
+
+	case protoreflect.BytesKind:
+
+	default:
+		log.Printf("(TODO) Unsupported field type: %+v", fullMessageTypeName(field.Message()))
+	}
+
 }
 
 // contains returns true if an array contains a specified string.
