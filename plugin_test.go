@@ -38,6 +38,7 @@ var openapiTests = []struct {
 	{name: "Better summary", path: "examples/tests/summary/", protofile: "message.proto"},
 	{name: "Message name pattern", path: "examples/tests/messagenamepattern/", protofile: "message.proto"},
 	{name: "Validate", path: "examples/tests/validate/", protofile: "message.proto"},
+	{name: "Required", path: "examples/tests/required/", protofile: "message.proto"},
 }
 
 func TestOpenAPIProtobufNaming(t *testing.T) {

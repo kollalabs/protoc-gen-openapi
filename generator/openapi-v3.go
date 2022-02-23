@@ -880,9 +880,11 @@ func (g *OpenAPIv3Generator) addSchemasToDocumentV3(d *v3.Document, messages []*
 		definitionProperties := &v3.Properties{
 			AdditionalProperties: make([]*v3.NamedSchemaOrReference, 0),
 		}
+		var requiredProperites []string
 		for _, field := range message.Fields {
 			// Check the field annotations to see if this is a readonly field.
 			outputOnly := false
+			required := false
 			extension := proto.GetExtension(field.Desc.Options(), annotations.E_FieldBehavior)
 			if extension != nil {
 				switch v := extension.(type) {
@@ -890,6 +892,9 @@ func (g *OpenAPIv3Generator) addSchemasToDocumentV3(d *v3.Document, messages []*
 					for _, vv := range v {
 						if vv == annotations.FieldBehavior_OUTPUT_ONLY {
 							outputOnly = true
+						}
+						if vv == annotations.FieldBehavior_REQUIRED {
+							required = true
 						}
 					}
 				default:
@@ -912,6 +917,9 @@ func (g *OpenAPIv3Generator) addSchemasToDocumentV3(d *v3.Document, messages []*
 				schema.Schema.Description = g.filterCommentString(field.Comments.Leading, true)
 				if outputOnly {
 					schema.Schema.ReadOnly = true
+				}
+				if required {
+					requiredProperites = append(requiredProperites, g.formatFieldName(field))
 				}
 			}
 			log.Println("About to call validate")
@@ -936,6 +944,7 @@ func (g *OpenAPIv3Generator) addSchemasToDocumentV3(d *v3.Document, messages []*
 						Schema: &v3.Schema{
 							Description: messageDescription,
 							Properties:  definitionProperties,
+							Required:    requiredProperites,
 						},
 					},
 				},
