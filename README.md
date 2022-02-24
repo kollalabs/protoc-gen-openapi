@@ -17,8 +17,14 @@ We have added some features that the Gnostic team most likely doesn't want to ad
 Some are fairly Kolla specific, sorry. We try to hide Kolla specific functionality
 in a way that won't trip anyone up.
 
-### Enums
+* [Better Enum Support](#better-enum-support)
+* [Summary Field](#summary-field)
+* [Validation (protoc-gen-validate)](#validation)
+* [Google Field Behavior Annotations](#google-field-behavior-annotations)
+
+### Better Enum Support
 Enums work better by using string values of proto enums instead of ints.
+
 ### Summary Field
 
 Sometimes you want more control over certain properties in the OpenAPI manifest. In our
@@ -56,7 +62,9 @@ paths:
 #...
 ```
 
-### Partial support for `protoc-gen-validate` annotations
+### Validation
+
+We added partial support for `protoc-gen-validate` annotations
 
 OpenAPI spec allows for a small handful of input validation configurations. 
 Proto has an awesome plugin called `protoc-gen-validate` for generating validation code in
