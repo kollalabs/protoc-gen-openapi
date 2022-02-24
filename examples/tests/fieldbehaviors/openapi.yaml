@@ -4,18 +4,26 @@
 openapi: 3.0.3
 info:
     title: Messaging API
-    version: 1.2.3
+    version: 0.0.1
 paths:
-    /v1/messages/{messageId}:
+    /v1/messages/{message_id}:
         patch:
             tags:
                 - Messaging
             summary: UpdateMessage
             operationId: Messaging_UpdateMessage
             parameters:
-                - name: messageId
+                - name: message_id
                   in: path
                   required: true
+                  schema:
+                    type: string
+                - name: outputonly
+                  in: query
+                  schema:
+                    type: string
+                - name: inputonly
+                  in: query
                   schema:
                     type: string
             requestBody:
@@ -37,9 +45,15 @@ components:
             required:
                 - text
             properties:
-                messageId:
+                message_id:
                     type: string
                 text:
+                    type: string
+                outputonly:
+                    readOnly: true
+                    type: string
+                inputonly:
+                    writeOnly: true
                     type: string
 tags:
     - name: Messaging

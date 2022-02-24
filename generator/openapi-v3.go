@@ -884,6 +884,7 @@ func (g *OpenAPIv3Generator) addSchemasToDocumentV3(d *v3.Document, messages []*
 		for _, field := range message.Fields {
 			// Check the field annotations to see if this is a readonly field.
 			outputOnly := false
+			inputOnly := false
 			required := false
 			extension := proto.GetExtension(field.Desc.Options(), annotations.E_FieldBehavior)
 			if extension != nil {
@@ -895,6 +896,9 @@ func (g *OpenAPIv3Generator) addSchemasToDocumentV3(d *v3.Document, messages []*
 						}
 						if vv == annotations.FieldBehavior_REQUIRED {
 							required = true
+						}
+						if vv == annotations.FieldBehavior_INPUT_ONLY {
+							inputOnly = true
 						}
 					}
 				default:
@@ -917,6 +921,9 @@ func (g *OpenAPIv3Generator) addSchemasToDocumentV3(d *v3.Document, messages []*
 				schema.Schema.Description = g.filterCommentString(field.Comments.Leading, true)
 				if outputOnly {
 					schema.Schema.ReadOnly = true
+				}
+				if inputOnly {
+					schema.Schema.WriteOnly = true
 				}
 				if required {
 					requiredProperites = append(requiredProperites, g.formatFieldName(field))

@@ -19,6 +19,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"strings"
 	"testing"
 )
 
@@ -38,25 +39,31 @@ var openapiTests = []struct {
 	{name: "Better summary", path: "examples/tests/summary/", protofile: "message.proto"},
 	{name: "Message name pattern", path: "examples/tests/messagenamepattern/", protofile: "message.proto"},
 	{name: "Validate", path: "examples/tests/validate/", protofile: "message.proto"},
-	{name: "Required", path: "examples/tests/required/", protofile: "message.proto"},
+	{name: "Field behaviors", path: "examples/tests/fieldbehaviors/", protofile: "message.proto"},
 }
 
 func TestOpenAPIProtobufNaming(t *testing.T) {
 	for _, tt := range openapiTests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Run protoc and the protoc-gen-openapi plugin to generate an OpenAPI spec.
-			out, err := exec.Command("protoc",
-				"-I", "./",
-				"-I", "examples",
+			cmd := []string{
+				"-I",
+				"./",
+				"-I",
+				"examples",
 				path.Join(tt.path, tt.protofile),
-				"--openapi_out=naming=proto,validate=true:.").CombinedOutput()
+				"--openapi_out=naming=proto,validate=true:.",
+			}
+			out, err := exec.Command("protoc", cmd...).CombinedOutput()
 			if err != nil {
+				fmt.Printf("Command: protoc %s\n", strings.Join(cmd, " "))
 				fmt.Println(string(out))
 				t.Fatalf("protoc failed: %+v", err)
 			}
 			// Verify that the generated spec matches our expected version.
 			output, err := exec.Command("diff", "openapi.yaml", path.Join(tt.path, "openapi.yaml")).CombinedOutput()
 			if err != nil {
+				fmt.Printf("Command: protoc %s\n", strings.Join(cmd, " "))
 				fmt.Println(string(output))
 				t.Fatalf("Diff failed: %+v", err)
 			}

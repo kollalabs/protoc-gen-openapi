@@ -34,4 +34,6 @@ service Messaging {
 message Message {
     string message_id = 1;
     string text = 2 [(google.api.field_behavior) = REQUIRED];
+    string outputonly = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+    string inputonly = 4 [(google.api.field_behavior) = INPUT_ONLY];
 }
