@@ -6,11 +6,11 @@ Contains a protoc plugin that generates openapi v3 documents
 
 Installation:
     
-    go install github.com/kollalabs/protoc-gen-openapi@latest```
+    go install github.com/kollalabs/protoc-gen-openapi@latest
     
 Usage:
 
-    protoc sample.proto -I. --openapi_out=version=1.2.3:.```
+    protoc sample.proto -I. --openapi_out=version=1.2.3:.
 
 ## Added Features
 We have added some features that the Gnostic team most likely doesn't want to add :-)
