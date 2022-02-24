@@ -127,3 +127,9 @@ Int64
 
 Adding more can easily be done in the function `addValidationRules` in `/generator/openapi-v3.yaml`
 
+### Google Field Behavior Annotations
+
+`(google.api.field_behavior) = REQUIRED` will add the field to the required list in the openAPI schema
+`(google.api.field_behavior) = OUTPUT_ONLY` will add the `readOnly` property to the field
+`(google.api.field_behavior) = INPUT_ONLY` will add the `writeOnly` property to the field
+TODO: `(google.api.field_behavior) = IMMUTABLE` will add the `x-createOnly` property to the field (not supported by openapi yet)

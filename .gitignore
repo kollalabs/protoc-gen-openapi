@@ -1,4 +1,5 @@
 /protoc-gen-openapi
+/openapi.yaml
 
 # General
 .DS_Store
