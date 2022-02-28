@@ -772,18 +772,24 @@ func (g *OpenAPIv3Generator) addValidationRules(fieldSchema *v3.SchemaOrReferenc
 		return // TO DO: Implement message validators from protoc-gen-validate
 
 	case protoreflect.StringKind:
-		log.Println("String kind!!!")
 		stringRules := fieldRules.GetString_()
 		if stringRules != nil {
 			// Set Format
-			if stringRules.GetUri() {
-				schema.Schema.Format = "uri"
-			} else if stringRules.GetEmail() {
+			// format is an open value, so you can use any formats, even not those defined by the OpenAPI Specification
+			if stringRules.GetEmail() {
 				schema.Schema.Format = "email"
+			} else if stringRules.GetHostname() {
+				schema.Schema.Format = "hostname"
+			} else if stringRules.GetIp() {
+				schema.Schema.Format = "ip"
 			} else if stringRules.GetIpv4() {
 				schema.Schema.Format = "ipv4"
 			} else if stringRules.GetIpv6() {
 				schema.Schema.Format = "ipv6"
+			} else if stringRules.GetUri() {
+				schema.Schema.Format = "uri"
+			} else if stringRules.GetUriRef() {
+				schema.Schema.Format = "uri_ref"
 			} else if stringRules.GetUuid() {
 				schema.Schema.Format = "uuid"
 			}
