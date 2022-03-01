@@ -17,9 +17,6 @@ jobs:
     container:
       image: ${{ needs.devcontainer.outputs.devcontainer-image }}
       options: --user vscode
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GHCR }}
 
     steps:
       - uses: actions/checkout@v2
