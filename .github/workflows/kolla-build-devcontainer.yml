@@ -16,7 +16,7 @@ jobs:
 
     steps:
       - name: Checkout current branch
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Check if devcontainer has changed
         id: changes
@@ -44,7 +44,7 @@ jobs:
       - has-changes
     if: ${{ needs.has-changes.outputs.has-changes == 'true' }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Install devcontainer CLI tool
         run: |
