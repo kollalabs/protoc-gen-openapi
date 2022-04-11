@@ -26,6 +26,11 @@ paths:
                     minimum: !!float 1
                     type: integer
                     format: int64
+                patterns:
+                    type: array
+                    items:
+                        type: string
+                        format: "regex here"
             requestBody:
                 content:
                     application/json:
@@ -70,6 +75,11 @@ components:
                     minimum: !!float 1
                     type: integer
                     format: int64
+                patterns:
+                    type: array
+                    items:
+                        type: string
+                        format: "regex here"
         Status:
             type: object
             properties:
