@@ -46,7 +46,9 @@ message Message {
 
     repeated string patterns = 4 [
         (validate.rules).repeated = {
-          ignore_empty: true, 
+          ignore_empty: true,
+          min_items: 1,
+          max_items: 100,
           items: {
             string: {pattern: "^patterns/[a-z0-9]{26}$"}
           }

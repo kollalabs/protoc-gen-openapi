@@ -29,6 +29,8 @@ paths:
                 - name: patterns
                   in: query
                   schema:
+                    maxItems: 100
+                    minItems: 1
                     type: array
                     items:
                         type: string
@@ -78,6 +80,8 @@ components:
                     type: integer
                     format: int64
                 patterns:
+                    maxItems: 100
+                    minItems: 1
                     type: array
                     items:
                         type: string
