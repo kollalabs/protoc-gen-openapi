@@ -16,7 +16,10 @@
 package generator
 
 import (
+	"regexp"
 	"strings"
+
+	"google.golang.org/protobuf/compiler/protogen"
 )
 
 // contains returns true if an array contains a specified string.
@@ -49,4 +52,18 @@ func singular(plural string) string {
 		return strings.TrimSuffix(plural, "s")
 	}
 	return plural
+}
+
+// filterCommentStringForSummary prepares comment (or method name if there is no comment) for summary value on methods
+func (g *OpenAPIv3Generator) filterCommentStringForSummary(c protogen.Comments, goName string) string {
+	r := regexp.MustCompile(`\n|,|\.`)
+
+	comment := string(c)
+	split := r.Split(comment, 2)
+	comment = g.linterRulePattern.ReplaceAllString(split[0], "")
+	comment = strings.TrimSpace(comment)
+	if comment == "" {
+		comment = strings.TrimSpace(goName)
+	}
+	return comment
 }

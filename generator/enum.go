@@ -7,7 +7,7 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-func (g *OpenAPIv3Generator) enumKindSchema(field protoreflect.FieldDescriptor) *v3.SchemaOrReference {
+func enumKindSchema(field protoreflect.FieldDescriptor) *v3.SchemaOrReference {
 
 	list := []*v3.Any{}
 	values := field.Enum().Values()
