@@ -44,5 +44,12 @@ message Message {
 
     int64 mynum = 3 [(validate.rules).int64 = {gte:1, lte:30}];
 
-    repeated string patterns = 4 [(validate.rules).repeated = {ignore_empty: true, items: {string: {pattern: "^patterns/[a-z0-9]{26}$"}}}];
+    repeated string patterns = 4 [
+        (validate.rules).repeated = {
+          ignore_empty: true, 
+          items: {
+            string: {pattern: "^patterns/[a-z0-9]{26}$"}
+          }
+        }
+    ];
 }
