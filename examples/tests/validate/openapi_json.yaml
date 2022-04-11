@@ -26,6 +26,15 @@ paths:
                     minimum: !!float 1
                     type: integer
                     format: int64
+                - name: patterns
+                  in: query
+                  schema:
+                    maxItems: 100
+                    minItems: 1
+                    type: array
+                    items:
+                        pattern: ^patterns/[a-z0-9]{26}$
+                        type: string
             requestBody:
                 content:
                     application/json:
@@ -70,6 +79,13 @@ components:
                     minimum: !!float 1
                     type: integer
                     format: int64
+                patterns:
+                    maxItems: 100
+                    minItems: 1
+                    type: array
+                    items:
+                        pattern: ^patterns/[a-z0-9]{26}$
+                        type: string
         Status:
             type: object
             properties:

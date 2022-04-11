@@ -24,14 +24,58 @@ func (g *OpenAPIv3Generator) addValidationRules(fieldSchema *v3.SchemaOrReferenc
 	if !ok {
 		return
 	}
+
 	//TODO: implement map validation
 	if field.IsMap() {
 		return
 	}
 
+	if field.IsList() {
+		repeatedRules := fieldRules.GetRepeated()
+		if repeatedRules == nil {
+			// no rules
+			return
+		}
+		// MinItems specifies that this field must have the specified number of
+		// items at a minimum
+		// MaxItems specifies that this field must have the specified number of
+		// items at a maximum
+		// Unique specifies that all elements in this field must be unique. This
+		// contraint is only applicable to scalar and enum types (messages are not
+		// supported).
+		// Items specifies the contraints to be applied to each item in the field.
+		// Repeated message fields will still execute validation against each item
+		// unless skip is specified here.
+		// IgnoreEmpty specifies that the validation rules of this field should be
+		// evaluated only if the field is not empty
+		if repeatedRules.MinItems != nil {
+			schema.Schema.MinItems = int64(*repeatedRules.MinItems)
+		}
+		if repeatedRules.MaxItems != nil {
+			schema.Schema.MaxItems = int64(*repeatedRules.MaxItems)
+		}
+
+		// pull out the array items field rules
+		fieldRules := repeatedRules.Items
+		if fieldRules == nil {
+			// no item specific rules
+			return
+		}
+		schema := schema.Schema.Items.SchemaOrReference[0]
+		fieldRule(fieldRules, field, schema.Oneof.(*v3.SchemaOrReference_Schema))
+
+		log.Printf("(TODO) Unsupported field type: list.")
+		return
+	}
+
+	fieldRule(fieldRules, field, schema)
+
+}
+
+func fieldRule(fieldRules *validate.FieldRules, field protoreflect.FieldDescriptor, schema *v3.SchemaOrReference_Schema) {
+
 	log.Println("Check kind of field")
 	kind := field.Kind()
-
 	switch kind {
 
 	case protoreflect.MessageKind:
@@ -108,12 +152,6 @@ func (g *OpenAPIv3Generator) addValidationRules(fieldSchema *v3.SchemaOrReferenc
 	case protoreflect.BytesKind:
 
 	default:
-		log.Printf("(TODO) Unsupported field type: %+v", g.reflect.fullMessageTypeName(field.Message()))
+		log.Printf("(TODO) Unsupported field type: %+v", fullMessageTypeName(field.Message()))
 	}
-
-	if field.IsList() {
-		log.Printf("(TODO) Unsupported field type: list.")
-		return
-	}
-
 }
