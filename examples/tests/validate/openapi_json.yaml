@@ -26,7 +26,9 @@ paths:
                     minimum: !!float 1
                     type: integer
                     format: int64
-                patterns:
+                - name: patterns
+                  in: query
+                  schema:
                     type: array
                     items:
                         type: string
