@@ -61,9 +61,11 @@ func TestOpenAPIProtobufNaming(t *testing.T) {
 				t.Fatalf("protoc failed: %+v", err)
 			}
 			// Verify that the generated spec matches our expected version.
-			output, err := exec.Command("diff", "openapi.yaml", path.Join(tt.path, "openapi.yaml")).CombinedOutput()
+			diffArgs := []string{"-u", "--color", "openapi.yaml", path.Join(tt.path, "openapi.yaml")}
+			output, err := exec.Command("diff", diffArgs...).CombinedOutput()
 			if err != nil {
 				fmt.Printf("Command: protoc %s\n", strings.Join(cmd, " "))
+				fmt.Printf("Command: diff %s\n", strings.Join(diffArgs, " "))
 				fmt.Println(string(output))
 				t.Fatalf("Diff failed: %+v", err)
 			}
@@ -89,8 +91,10 @@ func TestOpenAPIJSONNaming(t *testing.T) {
 			}
 
 			// Verify that the generated spec matches our expected version.
-			output, err := exec.Command("diff", "openapi.yaml", path.Join(tt.path, "openapi_json.yaml")).CombinedOutput()
+			diffArgs := []string{"-u", "--color", "openapi.yaml", path.Join(tt.path, "openapi_json.yaml")}
+			output, err := exec.Command("diff", diffArgs...).CombinedOutput()
 			if err != nil {
+				fmt.Println("Command: diff", strings.Join(diffArgs, " "))
 				fmt.Println(string(output))
 				t.Fatalf("Diff failed: %+v", err)
 			}

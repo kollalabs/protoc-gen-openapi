@@ -19,7 +19,6 @@ package tests.required.message.v1;
 
 import "google/api/annotations.proto";
 import "google/api/field_behavior.proto";
-import "envoy/validate.proto";
 
 option go_package = "github.com/google/gnostic/apps/protoc-gen-openapi/examples/tests/required/message/v1;message";
 
