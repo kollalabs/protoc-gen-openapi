@@ -32,6 +32,10 @@ func (g *OpenAPIv3Generator) addValidationRules(fieldSchema *v3.SchemaOrReferenc
 
 	if field.IsList() {
 		repeatedRules := fieldRules.GetRepeated()
+		if repeatedRules == nil {
+			// no rules
+			return
+		}
 		// MinItems specifies that this field must have the specified number of
 		// items at a minimum
 		// MaxItems specifies that this field must have the specified number of
@@ -50,6 +54,15 @@ func (g *OpenAPIv3Generator) addValidationRules(fieldSchema *v3.SchemaOrReferenc
 		if repeatedRules.MaxItems != nil {
 			schema.Schema.MaxItems = int64(*repeatedRules.MaxItems)
 		}
+
+		// pull out the array items field rules
+		fieldRules := repeatedRules.Items
+		if fieldRules == nil {
+			// no item specific rules
+			return
+		}
+		schema := schema.Schema.Items.SchemaOrReference[0]
+		fieldRule(fieldRules, field, schema.Oneof.(*v3.SchemaOrReference_Schema))
 
 		log.Printf("(TODO) Unsupported field type: list.")
 		return
