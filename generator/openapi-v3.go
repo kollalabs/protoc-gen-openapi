@@ -47,7 +47,7 @@ type Configuration struct {
 }
 
 const (
-	infoURL = "https://github.com/google/gnostic/tree/master/cmd/protoc-gen-openapi"
+	infoURL = "https://github.com/kollalabs/protoc-gen-openapi"
 )
 
 // In order to dynamically add google.rpc.Status responses we need
