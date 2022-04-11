@@ -16,7 +16,6 @@
 package generator
 
 import (
-	"regexp"
 	"strings"
 
 	"google.golang.org/protobuf/compiler/protogen"
@@ -56,14 +55,13 @@ func singular(plural string) string {
 
 // filterCommentStringForSummary prepares comment (or method name if there is no comment) for summary value on methods
 func (g *OpenAPIv3Generator) filterCommentStringForSummary(c protogen.Comments, goName string) string {
-	r := regexp.MustCompile(`\n|,|\.`)
-
 	comment := string(c)
-	split := r.Split(comment, 2)
-	comment = g.linterRulePattern.ReplaceAllString(split[0], "")
-	comment = strings.TrimSpace(comment)
-	if comment == "" {
-		comment = strings.TrimSpace(goName)
+	split := strings.Split(comment, "|")
+	if len(split) >= 2 {
+		comment = split[0]
+	} else {
+		comment = goName
 	}
-	return comment
+	comment = g.linterRulePattern.ReplaceAllString(comment, "")
+	return strings.TrimSpace(comment)
 }
