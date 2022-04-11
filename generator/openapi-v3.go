@@ -966,30 +966,6 @@ func (g *OpenAPIv3Generator) addSchemasToDocumentV3(d *v3.Document, messages []*
 	}
 }
 
-// contains returns true if an array contains a specified string.
-func contains(s []string, e string) bool {
-	for _, a := range s {
-		if a == e {
-			return true
-		}
-	}
-	return false
-}
-
-// singular produces the singular form of a collection name.
-func singular(plural string) string {
-	if strings.HasSuffix(plural, "ves") {
-		return strings.TrimSuffix(plural, "ves") + "f"
-	}
-	if strings.HasSuffix(plural, "ies") {
-		return strings.TrimSuffix(plural, "ies") + "y"
-	}
-	if strings.HasSuffix(plural, "s") {
-		return strings.TrimSuffix(plural, "s")
-	}
-	return plural
-}
-
 func coalesceToStringSchema(schema *v3.SchemaOrReference, allowed ...string) *v3.SchemaOrReference {
 
 	stringSchema := &v3.SchemaOrReference{
