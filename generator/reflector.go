@@ -150,12 +150,39 @@ func (r *OpenAPIv3Reflector) schemaOrReferenceForMessage(message protoreflect.Me
 		// Empty is closer to JSON undefined than null, so ignore this field
 		return nil //&v3.SchemaOrReference{Oneof: &v3.SchemaOrReference_Schema{Schema: &v3.Schema{Type: "null"}}}
 
+	case ".google.protobuf.BoolValue":
+		return &v3.SchemaOrReference{
+			Oneof: &v3.SchemaOrReference_Schema{
+				Schema: &v3.Schema{Type: "boolean", Nullable: true}}}
+
+	case ".google.protobuf.BytesValue":
+		return &v3.SchemaOrReference{
+			Oneof: &v3.SchemaOrReference_Schema{
+				Schema: &v3.Schema{Type: "string", Format: "bytes", Nullable: true}}}
+
+	case ".google.protobuf.DoubleValue", ".google.protobuf.FloatValue":
+		return &v3.SchemaOrReference{
+			Oneof: &v3.SchemaOrReference_Schema{
+				Schema: &v3.Schema{Type: "number", Nullable: true, Format: "float"}}} // TODO: put the correct format here
+
+	case ".google.protobuf.Int64Value", ".google.protobuf.UInt64Value",
+		".google.protobuf.Int32Value", ".google.protobuf.UInt32Value":
+		return &v3.SchemaOrReference{
+			Oneof: &v3.SchemaOrReference_Schema{
+				Schema: &v3.Schema{Type: "integer", Nullable: true}}} // TODO: put the correct format here
+
+	case ".google.protobuf.StringValue":
+		return &v3.SchemaOrReference{
+			Oneof: &v3.SchemaOrReference_Schema{
+				Schema: &v3.Schema{Type: "string", Nullable: true}}}
+
 	default:
 		ref := r.schemaReferenceForMessage(message)
 		return &v3.SchemaOrReference{
 			Oneof: &v3.SchemaOrReference_Reference{
 				Reference: &v3.Reference{XRef: ref}}}
 	}
+
 }
 
 func (r *OpenAPIv3Reflector) schemaOrReferenceForField(field protoreflect.FieldDescriptor) *v3.SchemaOrReference {
