@@ -27,8 +27,9 @@ func enumKindSchema(field protoreflect.FieldDescriptor) *v3.SchemaOrReference {
 	s := &v3.SchemaOrReference{
 		Oneof: &v3.SchemaOrReference_Schema{
 			Schema: &v3.Schema{
-				Type: "string",
-				Enum: list,
+				Format: "enum",
+				Type:   "string",
+				Enum:   list,
 			},
 		},
 	}

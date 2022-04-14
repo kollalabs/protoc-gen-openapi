@@ -59,6 +59,7 @@ components:
                         - APPROVED
                         - PENDING
                     type: string
+                    format: enum
         Status:
             type: object
             properties:
