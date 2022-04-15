@@ -76,7 +76,7 @@ func NewOpenAPIv3Generator(plugin *protogen.Plugin, conf Configuration) *OpenAPI
 
 		reflect:           NewOpenAPIv3Reflector(conf),
 		generatedSchemas:  make([]string, 0),
-		linterRulePattern: regexp.MustCompile(`\(-- .* --\)`),
+		linterRulePattern: regexp.MustCompile(`\(-- (?s:.)* --\)`), // Kolla
 		pathPattern:       regexp.MustCompile("{([^=}]+)}"),
 		namedPathPattern:  regexp.MustCompile("{(.+)=(.+)}"),
 	}
