@@ -54,4 +54,20 @@ message Message {
           }
         }
     ];
+
+    // enum options approval state
+    enum ApprovalState {
+      // Default
+      APPROVAL_STATE_UNSPECIFIED = 0;
+      // Pending
+      PENDING_APPROVAL = 1;
+      // Approved
+      APPROVED = 2;
+      // rejected
+      REJECTED = 3;
+    }
+
+    ApprovalState approval_state = 5 [
+      (validate.rules).enum = {in: [ 2, 3 ]}
+    ];
 }
