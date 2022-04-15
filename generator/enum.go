@@ -25,7 +25,7 @@ func enumKindSchema(field protoreflect.FieldDescriptor) *v3.SchemaOrReference {
 
 func enumsToV3Any(field protoreflect.FieldDescriptor, enumValues ...int32) []*v3.Any {
 
-	stringList := enumToStringSlice(field)
+	stringList := enumToStringSlice(field, enumValues...)
 	list := []*v3.Any{}
 	for _, v := range stringList {
 		n := &v3.Any{

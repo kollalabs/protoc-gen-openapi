@@ -39,7 +39,6 @@ paths:
                   in: query
                   schema:
                     enum:
-                        - PENDING_APPROVAL
                         - APPROVED
                         - REJECTED
                     type: string
@@ -97,7 +96,6 @@ components:
                         type: string
                 approval_state:
                     enum:
-                        - PENDING_APPROVAL
                         - APPROVED
                         - REJECTED
                     type: string
