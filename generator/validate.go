@@ -153,6 +153,8 @@ func fieldRule(fieldRules *validate.FieldRules, field protoreflect.FieldDescript
 		} else if enumRules.NotIn != nil {
 			validEnums = remove(enumValues(field, true), enumRules.NotIn...)
 		}
+		// we don't check enumRules.DefinedOnly because we already list the set of valid enums
+
 		list := enumsToV3Any(field, validEnums...)
 		schema.Schema.Enum = list
 

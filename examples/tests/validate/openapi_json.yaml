@@ -35,6 +35,15 @@ paths:
                     items:
                         pattern: ^patterns/[a-z0-9]{26}$
                         type: string
+                - name: approvalState
+                  in: query
+                  schema:
+                    enum:
+                        - PENDING_APPROVAL
+                        - APPROVED
+                        - REJECTED
+                    type: string
+                    format: enum
             requestBody:
                 content:
                     application/json:
@@ -86,6 +95,13 @@ components:
                     items:
                         pattern: ^patterns/[a-z0-9]{26}$
                         type: string
+                approvalState:
+                    enum:
+                        - PENDING_APPROVAL
+                        - APPROVED
+                        - REJECTED
+                    type: string
+                    format: enum
         Status:
             type: object
             properties:
