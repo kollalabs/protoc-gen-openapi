@@ -8,21 +8,7 @@ import (
 )
 
 func enumKindSchema(field protoreflect.FieldDescriptor) *v3.SchemaOrReference {
-
-	list := []*v3.Any{}
-	values := field.Enum().Values()
-	for i := 0; i < values.Len(); i++ {
-		v := values.Get(i)
-		// skip default unspecified values
-		if strings.HasSuffix(string(v.Name()), "_UNSPECIFIED") {
-			continue
-		}
-
-		n := &v3.Any{
-			Yaml: string(v.Name()),
-		}
-		list = append(list, n)
-	}
+	list := enumsToV3Any(field)
 
 	s := &v3.SchemaOrReference{
 		Oneof: &v3.SchemaOrReference_Schema{
@@ -35,4 +21,43 @@ func enumKindSchema(field protoreflect.FieldDescriptor) *v3.SchemaOrReference {
 	}
 
 	return s
+}
+
+func enumsToV3Any(field protoreflect.FieldDescriptor, enumValues ...int32) []*v3.Any {
+
+	stringList := enumToStringSlice(field)
+	list := []*v3.Any{}
+	for _, v := range stringList {
+		n := &v3.Any{
+			Yaml: string(v),
+		}
+		list = append(list, n)
+	}
+	return list
+}
+
+func enumToStringSlice(field protoreflect.FieldDescriptor, enumValues ...int32) []string {
+	list := []string{}
+	values := field.Enum().Values()
+	for i := 0; i < values.Len(); i++ {
+		if len(enumValues) == 0 || has(enumValues, values.Get(i).Index()) {
+			v := values.Get(i)
+			// skip default unspecified values
+			if strings.HasSuffix(string(v.Name()), "_UNSPECIFIED") {
+				continue
+			}
+			list = append(list, string(v.Name()))
+		}
+	}
+
+	return list
+}
+
+func has(list []int32, idx int) bool {
+	for _, v := range list {
+		if int(v) == idx {
+			return true
+		}
+	}
+	return false
 }

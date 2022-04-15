@@ -2,6 +2,7 @@ package generator
 
 import (
 	"log"
+	"strconv"
 
 	"github.com/envoyproxy/protoc-gen-validate/validate"
 	v3 "github.com/google/gnostic/openapiv3"
@@ -83,58 +84,80 @@ func fieldRule(fieldRules *validate.FieldRules, field protoreflect.FieldDescript
 
 	case protoreflect.StringKind:
 		stringRules := fieldRules.GetString_()
-		if stringRules != nil {
-			// Set Format
-			// format is an open value, so you can use any formats, even not those defined by the OpenAPI Specification
-			if stringRules.GetEmail() {
-				schema.Schema.Format = "email"
-			} else if stringRules.GetHostname() {
-				schema.Schema.Format = "hostname"
-			} else if stringRules.GetIp() {
-				schema.Schema.Format = "ip"
-			} else if stringRules.GetIpv4() {
-				schema.Schema.Format = "ipv4"
-			} else if stringRules.GetIpv6() {
-				schema.Schema.Format = "ipv6"
-			} else if stringRules.GetUri() {
-				schema.Schema.Format = "uri"
-			} else if stringRules.GetUriRef() {
-				schema.Schema.Format = "uri_ref"
-			} else if stringRules.GetUuid() {
-				schema.Schema.Format = "uuid"
-			}
-			// Set min/max
-			if stringRules.GetMinLen() > 0 {
-				schema.Schema.MinLength = int64(stringRules.GetMinLen())
-			}
-			if stringRules.GetMaxLen() > 0 {
-				schema.Schema.MaxLength = int64(stringRules.GetMaxLen())
-			}
-			// Set Pattern
-			if stringRules.GetPattern() != "" {
-				schema.Schema.Pattern = stringRules.GetPattern()
-			}
-
+		if stringRules == nil {
+			break
+		}
+		// Set Format
+		// format is an open value, so you can use any formats, even not those defined by the OpenAPI Specification
+		if stringRules.GetEmail() {
+			schema.Schema.Format = "email"
+		} else if stringRules.GetHostname() {
+			schema.Schema.Format = "hostname"
+		} else if stringRules.GetIp() {
+			schema.Schema.Format = "ip"
+		} else if stringRules.GetIpv4() {
+			schema.Schema.Format = "ipv4"
+		} else if stringRules.GetIpv6() {
+			schema.Schema.Format = "ipv6"
+		} else if stringRules.GetUri() {
+			schema.Schema.Format = "uri"
+		} else if stringRules.GetUriRef() {
+			schema.Schema.Format = "uri_ref"
+		} else if stringRules.GetUuid() {
+			schema.Schema.Format = "uuid"
+		}
+		// Set min/max
+		if stringRules.GetMinLen() > 0 {
+			schema.Schema.MinLength = int64(stringRules.GetMinLen())
+		}
+		if stringRules.GetMaxLen() > 0 {
+			schema.Schema.MaxLength = int64(stringRules.GetMaxLen())
+		}
+		// Set Pattern
+		if stringRules.GetPattern() != "" {
+			schema.Schema.Pattern = stringRules.GetPattern()
 		}
 
 	case protoreflect.Int32Kind:
 		int32Rules := fieldRules.GetInt32()
-		if int32Rules != nil {
-			if int32Rules.GetGte() > 0 {
-				schema.Schema.Minimum = float64(int32Rules.GetGte())
-			}
-			if int32Rules.GetLte() > 0 {
-				schema.Schema.Maximum = float64(int32Rules.GetLte())
-			}
+		if int32Rules == nil {
+			break
 		}
+		if int32Rules.GetGte() > 0 {
+			schema.Schema.Minimum = float64(int32Rules.GetGte())
+		}
+		if int32Rules.GetLte() > 0 {
+			schema.Schema.Maximum = float64(int32Rules.GetLte())
+		}
+
 	case protoreflect.Int64Kind:
 		int64Rules := fieldRules.GetInt64()
-		if int64Rules != nil {
-			if int64Rules.GetGte() > 0 {
-				schema.Schema.Minimum = float64(int64Rules.GetGte())
+		if int64Rules == nil {
+			break
+		}
+		if int64Rules.GetGte() > 0 {
+			schema.Schema.Minimum = float64(int64Rules.GetGte())
+		}
+		if int64Rules.GetLte() > 0 {
+			schema.Schema.Maximum = float64(int64Rules.GetLte())
+		}
+	case protoreflect.EnumKind:
+		enumRules := fieldRules.GetEnum()
+		if enumRules == nil {
+			break
+		}
+		if enumRules.Const != nil {
+			schema.Schema.Enum = []*v3.Any{
+				{
+					Yaml: strconv.Itoa(int(*enumRules.Const)),
+				},
 			}
-			if int64Rules.GetLte() > 0 {
-				schema.Schema.Maximum = float64(int64Rules.GetLte())
+		} else if enumRules.NotIn != nil {
+
+			schema.Schema.Enum = []*v3.Any{
+				{
+					Yaml: strconv.Itoa(int(*enumRules.Const)),
+				},
 			}
 		}
 	//TODO:
@@ -142,8 +165,6 @@ func fieldRule(fieldRules *validate.FieldRules, field protoreflect.FieldDescript
 		protoreflect.Sint64Kind, protoreflect.Uint64Kind,
 		protoreflect.Sfixed32Kind, protoreflect.Fixed32Kind, protoreflect.Sfixed64Kind,
 		protoreflect.Fixed64Kind:
-
-	case protoreflect.EnumKind:
 
 	case protoreflect.BoolKind:
 
