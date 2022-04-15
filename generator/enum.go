@@ -40,7 +40,7 @@ func enumToStringSlice(field protoreflect.FieldDescriptor, enumValues ...int32) 
 	list := []string{}
 	values := field.Enum().Values()
 	for i := 0; i < values.Len(); i++ {
-		if len(enumValues) == 0 || has(enumValues, values.Get(i).Index()) {
+		if len(enumValues) == 0 || has(enumValues, int32(values.Get(i).Index())) {
 			v := values.Get(i)
 			// skip default unspecified values
 			if strings.HasSuffix(string(v.Name()), "_UNSPECIFIED") {
@@ -53,9 +53,35 @@ func enumToStringSlice(field protoreflect.FieldDescriptor, enumValues ...int32) 
 	return list
 }
 
-func has(list []int32, idx int) bool {
+// enumValues returns of list of enum ids for a given field
+func enumValues(field protoreflect.FieldDescriptor, removeUnspecified bool) []int32 {
+	values := field.Enum().Values()
+	var list []int32
+	for i := 0; i < values.Len(); i++ {
+		v := values.Get(i)
+		// skip default unspecified values
+		if removeUnspecified && strings.HasSuffix(string(v.Name()), "_UNSPECIFIED") {
+			continue
+		}
+
+		list = append(list, int32(values.Get(i).Index()))
+	}
+	return list
+}
+
+func remove(list []int32, idxs ...int32) []int32 {
+	var filtered []int32
+	for _, v := range idxs {
+		if !has(list, v) {
+			filtered = append(filtered, int32(v))
+		}
+	}
+	return filtered
+}
+
+func has(list []int32, idx int32) bool {
 	for _, v := range list {
-		if int(v) == idx {
+		if v == idx {
 			return true
 		}
 	}

@@ -2,7 +2,6 @@ package generator
 
 import (
 	"log"
-	"strconv"
 
 	"github.com/envoyproxy/protoc-gen-validate/validate"
 	v3 "github.com/google/gnostic/openapiv3"
@@ -146,21 +145,18 @@ func fieldRule(fieldRules *validate.FieldRules, field protoreflect.FieldDescript
 		if enumRules == nil {
 			break
 		}
+		var validEnums []int32
 		if enumRules.Const != nil {
-			schema.Schema.Enum = []*v3.Any{
-				{
-					Yaml: strconv.Itoa(int(*enumRules.Const)),
-				},
-			}
+			validEnums = []int32{*enumRules.Const}
+		} else if enumRules.In != nil {
+			validEnums = enumRules.In
 		} else if enumRules.NotIn != nil {
-
-			schema.Schema.Enum = []*v3.Any{
-				{
-					Yaml: strconv.Itoa(int(*enumRules.Const)),
-				},
-			}
+			validEnums = remove(enumValues(field, true), enumRules.NotIn...)
 		}
-	//TODO:
+		list := enumsToV3Any(field, validEnums...)
+		schema.Schema.Enum = list
+
+	//TODO: implement protoc-gen-validate rules for the following types
 	case protoreflect.Sint32Kind, protoreflect.Uint32Kind,
 		protoreflect.Sint64Kind, protoreflect.Uint64Kind,
 		protoreflect.Sfixed32Kind, protoreflect.Fixed32Kind, protoreflect.Sfixed64Kind,
