@@ -1,0 +1,33 @@
+syntax = "proto2";
+
+package openapi;
+
+import "google/protobuf/descriptor.proto";
+
+option go_package = "github.com/kollalabs/protoc-gen-openapi/openapi;openapi";
+
+// Add openAPI parameters to a method
+extend google.protobuf.MethodOptions {
+    optional Parameters method_params = 66700;
+}
+
+// Add parameters that are added to every method in a service
+extend google.protobuf.ServiceOptions {
+  optional Parameters service_params = 66701;
+}
+
+// Parameters at the file level are added to every method in every service in the file 
+extend google.protobuf.FileOptions {
+    optional Parameters file_params = 66702;
+}   
+
+
+message Parameters {
+    repeated Header headers = 1; 
+}
+
+message Header {
+    optional string name = 1;
+    optional string pattern = 2;
+    optional string description = 3;
+}
