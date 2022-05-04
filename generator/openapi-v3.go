@@ -32,6 +32,8 @@ import (
 
 	wk "github.com/google/gnostic/cmd/protoc-gen-openapi/generator/wellknown"
 	v3 "github.com/google/gnostic/openapiv3"
+
+	open_api_extensions "github.com/kollalabs/protoc-gen-openapi/openapi"
 )
 
 type Configuration struct {
@@ -399,6 +401,7 @@ func (g *OpenAPIv3Generator) buildOperationV3(
 	bodyField string,
 	inputMessage *protogen.Message,
 	outputMessage *protogen.Message,
+	customParams *open_api_extensions.Parameters, // Kolla
 ) (*v3.Operation, string) {
 	// coveredParameters tracks the parameters that have been used in the body or path.
 	coveredParameters := make([]string, 0)
@@ -493,6 +496,39 @@ func (g *OpenAPIv3Generator) buildOperationV3(
 						},
 					},
 				})
+		}
+	}
+
+	// If there are any customParams, then iterate over them and add them to the parameter list
+	if customParams != nil {
+		for _, header := range customParams.Headers {
+			name := ""
+			pattern := ""
+			if header.Name != nil {
+				name = *header.Name
+			}
+			if header.Pattern != nil {
+				pattern = *header.Pattern
+			}
+			parameters = append(parameters, &v3.ParameterOrReference{
+				Oneof: &v3.ParameterOrReference_Parameter{
+					Parameter: &v3.Parameter{
+						Name:        name,
+						In:          "header",
+						Description: "Custom header: " + name,
+						Required:    false,
+						Schema: &v3.SchemaOrReference{
+							Oneof: &v3.SchemaOrReference_Schema{
+								Schema: &v3.Schema{
+									Type:    "string",
+									Pattern: pattern,
+								},
+							},
+						},
+					},
+				},
+			},
+			)
 		}
 	}
 
@@ -657,7 +693,11 @@ func (g *OpenAPIv3Generator) addOperationToDocumentV3(d *v3.Document, op *v3.Ope
 func (g *OpenAPIv3Generator) addPathsToDocumentV3(d *v3.Document, services []*protogen.Service) {
 	for _, service := range services {
 		annotationsCount := 0
-
+		serviceHeadersOpts := proto.GetExtension(service.Desc.Options(), open_api_extensions.E_ServiceParams)
+		var params *open_api_extensions.Parameters
+		if serviceHeadersOpts != nil && serviceHeadersOpts != open_api_extensions.E_ServiceParams.InterfaceOf(open_api_extensions.E_ServiceParams.Zero()) {
+			params = serviceHeadersOpts.(*open_api_extensions.Parameters)
+		}
 		for _, method := range service.Methods {
 			comment := g.filterCommentString(method.Comments.Leading, false)
 			inputMessage := method.Input
@@ -702,7 +742,7 @@ func (g *OpenAPIv3Generator) addPathsToDocumentV3(d *v3.Document, services []*pr
 				defaultHost := proto.GetExtension(service.Desc.Options(), annotations.E_DefaultHost).(string)
 
 				op, path2 := g.buildOperationV3(
-					d, summary, operationID, service.GoName, comment, defaultHost, path, body, inputMessage, outputMessage)
+					d, summary, operationID, service.GoName, comment, defaultHost, path, body, inputMessage, outputMessage, params)
 
 				// Merge any `Operation` annotations with the current
 				extOperation := proto.GetExtension(method.Desc.Options(), v3.E_Operation)
