@@ -35,4 +35,5 @@ service Messaging {
 message Message {
     string message_id = 1;
     string text = 2;
+    bytes byte_string = 3;
 }

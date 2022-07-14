@@ -239,7 +239,9 @@ func (r *OpenAPIv3Reflector) schemaOrReferenceForField(field protoreflect.FieldD
 		kindSchema = wk.NewNumberSchema(kind.String())
 
 	case protoreflect.BytesKind:
-		kindSchema = wk.NewBytesSchema()
+		kindSchema = &v3.SchemaOrReference{
+			Oneof: &v3.SchemaOrReference_Schema{
+				Schema: &v3.Schema{Type: "string", Format: "byte"}}}
 
 	default:
 		log.Printf("(TODO) Unsupported field type: %+v", r.fullMessageTypeName(field.Message()))
