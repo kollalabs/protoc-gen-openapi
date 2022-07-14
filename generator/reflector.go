@@ -166,7 +166,7 @@ func (r *OpenAPIv3Reflector) schemaOrReferenceForMessage(message protoreflect.Me
 	case ".google.protobuf.BytesValue":
 		return &v3.SchemaOrReference{
 			Oneof: &v3.SchemaOrReference_Schema{
-				Schema: &v3.Schema{Type: "string", Format: "bytes", Nullable: true}}}
+				Schema: &v3.Schema{Type: "string", Format: "byte", Nullable: true}}}
 
 	case ".google.protobuf.DoubleValue", ".google.protobuf.FloatValue":
 		return &v3.SchemaOrReference{

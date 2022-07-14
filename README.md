@@ -2,7 +2,7 @@
 
 Contains a protoc plugin that generates openapi v3 documents
 
-**Forked from github.com/google/gnostic/cmd/protoc-gen-openapi** 
+**Forked from [github.com/google/gnostic/cmd/protoc-gen-openapi](https://github.com/google/gnostic/tree/main/cmd/protoc-gen-openapi)** 
 
 Installation:
     
