@@ -14,6 +14,8 @@ Usage:
 
 ## Testing
 
+To see output during tests use `log.Print*`
+
 ```
 go clean -testcache && go test 
 ```
