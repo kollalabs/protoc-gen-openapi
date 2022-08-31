@@ -57,7 +57,7 @@ jobs:
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
-          username: ${{ github.repository_owner }}
+          username: ${{ github.actor }}
           password: ${{ secrets.GHCR_PUBLIC_REPOS }}
 
       - name: Build and publish the devcontainer
