@@ -37,13 +37,14 @@ func enumsToV3Any(field protoreflect.FieldDescriptor, enumValues ...int32) []*v3
 }
 
 func enumToStringSlice(field protoreflect.FieldDescriptor, enumValues ...int32) []string {
+	removeUnspecified := len(enumValues) == 0
 	list := []string{}
 	values := field.Enum().Values()
 	for i := 0; i < values.Len(); i++ {
 		if len(enumValues) == 0 || has(enumValues, int32(values.Get(i).Index())) {
 			v := values.Get(i)
 			// skip default unspecified values
-			if strings.HasSuffix(string(v.Name()), "_UNSPECIFIED") {
+			if removeUnspecified && strings.HasSuffix(string(v.Name()), "_UNSPECIFIED") {
 				continue
 			}
 			list = append(list, string(v.Name()))

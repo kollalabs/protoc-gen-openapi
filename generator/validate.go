@@ -10,7 +10,6 @@ import (
 )
 
 func (g *OpenAPIv3Generator) addValidationRules(fieldSchema *v3.SchemaOrReference, field protoreflect.FieldDescriptor) {
-	log.Println("Let's validate!")
 	validationRules := proto.GetExtension(field.Options(), validate.E_Rules)
 	if validationRules == nil {
 		return
@@ -19,7 +18,6 @@ func (g *OpenAPIv3Generator) addValidationRules(fieldSchema *v3.SchemaOrReferenc
 	if !ok {
 		return
 	}
-	log.Println("Found some rules... let's go!")
 	schema, ok := fieldSchema.Oneof.(*v3.SchemaOrReference_Schema)
 	if !ok {
 		return
@@ -74,7 +72,6 @@ func (g *OpenAPIv3Generator) addValidationRules(fieldSchema *v3.SchemaOrReferenc
 
 func fieldRule(fieldRules *validate.FieldRules, field protoreflect.FieldDescriptor, schema *v3.SchemaOrReference_Schema) {
 
-	log.Println("Check kind of field")
 	kind := field.Kind()
 	switch kind {
 
@@ -145,16 +142,17 @@ func fieldRule(fieldRules *validate.FieldRules, field protoreflect.FieldDescript
 		if enumRules == nil {
 			break
 		}
+
 		var validEnums []int32
 		if enumRules.Const != nil {
-			validEnums = []int32{*enumRules.Const}
+			validEnums = enumValues(field, true)
 		} else if enumRules.In != nil {
 			validEnums = enumRules.In
 		} else if enumRules.NotIn != nil {
-			validEnums = remove(enumValues(field, true), enumRules.NotIn...)
+			validEnums = remove(enumValues(field, false), enumRules.NotIn...)
 		}
 		// we don't check enumRules.DefinedOnly because we already list the set of valid enums
-
+		log.Printf("valid enums: [%#v]\n", validEnums)
 		list := enumsToV3Any(field, validEnums...)
 		schema.Schema.Enum = list
 

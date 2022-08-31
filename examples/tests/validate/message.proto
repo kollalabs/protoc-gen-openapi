@@ -67,7 +67,8 @@ message Message {
       REJECTED = 3;
     }
 
+    // explicitly include the zero value
     ApprovalState approval_state = 5 [
-      (validate.rules).enum = {in: [ 2, 3 ]}
+      (validate.rules).enum = {in: [ 0, 2, 3 ]}
     ];
 }
