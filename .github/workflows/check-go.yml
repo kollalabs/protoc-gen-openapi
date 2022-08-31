@@ -16,7 +16,7 @@ jobs:
       - devcontainer
     container:
       image: ${{ needs.devcontainer.outputs.devcontainer-image }}
-      options: --user 1001
+      options: --user 1000
 
     steps:
       - uses: actions/checkout@v3
