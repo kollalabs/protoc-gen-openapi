@@ -12,6 +12,14 @@ Usage:
 
     protoc sample.proto -I. --openapi_out=version=1.2.3:.
 
+## Testing
+
+To see output during tests use `log.Print*`
+
+```
+go clean -testcache && go test 
+```
+
 ## Added Features
 We have added some features that the Gnostic team most likely doesn't want to add :-)
 Some are fairly Kolla specific, sorry. We try to hide Kolla specific functionality

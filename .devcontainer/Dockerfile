@@ -27,7 +27,7 @@ RUN BIN="/usr/local/bin" && \
 # we get x86_64 and aarch64
 # Install protoc (x86_64 || aarch_64)
 RUN PB_REL="https://github.com/protocolbuffers/protobuf/releases" && \
-  VERSION="3.21.2" && \ 
+  VERSION="21.5" && \
   ARCH=$(uname -m); \
   if [ $ARCH = 'aarch64' ]; then ARCH='aarch_64'; fi; \
   curl -curl -LO $PB_REL/download/v${VERSION}/protoc-${VERSION}-linux-${ARCH}.zip && \
@@ -40,7 +40,7 @@ RUN PB_REL="https://github.com/protocolbuffers/protobuf/releases" && \
 
 USER vscode
 
-RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.27.1
+RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28.1
 RUN go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2
 
 RUN sudo chmod g+w -R /go

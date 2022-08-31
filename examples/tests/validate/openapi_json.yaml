@@ -37,8 +37,10 @@ paths:
                         type: string
                 - name: approvalState
                   in: query
+                  description: explicitly include the zero value
                   schema:
                     enum:
+                        - APPROVAL_STATE_UNSPECIFIED
                         - APPROVED
                         - REJECTED
                     type: string
@@ -96,9 +98,11 @@ components:
                         type: string
                 approvalState:
                     enum:
+                        - APPROVAL_STATE_UNSPECIFIED
                         - APPROVED
                         - REJECTED
                     type: string
+                    description: explicitly include the zero value
                     format: enum
         Status:
             type: object

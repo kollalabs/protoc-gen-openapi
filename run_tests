@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -eux
+
+go build -v
+
+go clean -testcache && go test

@@ -55,6 +55,9 @@ jobs:
       - name: Build and publish the devcontainer
         run: |
           set -eux
+          
+          # install devcontainer cli
+          npm install -g @vscode/dev-container-cli
 
           # install devcontainer cli
           npm install -g @vscode/dev-container-cli
