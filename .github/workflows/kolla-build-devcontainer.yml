@@ -58,7 +58,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
-          password: ${{ secrets.GHCR }}
+          password: ${{ secrets.GHCR_PUBLIC_REPOS }}
 
       - name: Build and publish the devcontainer
         run: |
