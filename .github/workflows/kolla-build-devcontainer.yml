@@ -59,6 +59,9 @@ jobs:
           # install devcontainer cli
           npm install -g @vscode/dev-container-cli
 
+          # install devcontainer cli
+          npm install -g @vscode/dev-container-cli
+
           IMAGE=${{ needs.has-changes.outputs.devcontainer-image }}
           # TODO inject cache from entry for current branch if we're on a branch
           docker pull ${IMAGE} || true
