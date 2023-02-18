@@ -142,6 +142,9 @@ func (r *OpenAPIv3Reflector) schemaOrReferenceForMessage(message protoreflect.Me
 	case ".google.protobuf.Timestamp":
 		return wk.NewGoogleProtobufTimestampSchema()
 
+	case ".google.protobuf.Duration":
+		return NewGoogleProtobufDurationSchema()
+
 	case ".google.type.Date":
 		return wk.NewGoogleTypeDateSchema()
 
@@ -252,4 +255,11 @@ func (r *OpenAPIv3Reflector) schemaOrReferenceForField(field protoreflect.FieldD
 	}
 
 	return kindSchema
+}
+
+// google.protobuf.Timestamp is serialized as a string
+func NewGoogleProtobufDurationSchema() *v3.SchemaOrReference {
+	return &v3.SchemaOrReference{
+		Oneof: &v3.SchemaOrReference_Schema{
+			Schema: &v3.Schema{Type: "string"}}}
 }
