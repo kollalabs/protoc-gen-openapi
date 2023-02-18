@@ -100,6 +100,17 @@ paths:
                     type: array
                     items:
                         $ref: '#/components/schemas/GoogleProtobufValue'
+                - name: timestamp_type
+                  in: query
+                  description: Description of wkt timestamp
+                  schema:
+                    type: string
+                    format: date-time
+                - name: duration_type
+                  in: query
+                  description: Description of wkt duration
+                  schema:
+                    type: string
             responses:
                 "200":
                     description: OK
@@ -215,6 +226,17 @@ paths:
                     type: array
                     items:
                         $ref: '#/components/schemas/GoogleProtobufValue'
+                - name: timestamp_type
+                  in: query
+                  description: Description of wkt timestamp
+                  schema:
+                    type: string
+                    format: date-time
+                - name: duration_type
+                  in: query
+                  description: Description of wkt duration
+                  schema:
+                    type: string
             requestBody:
                 content:
                     application/json:
@@ -330,6 +352,13 @@ components:
                     items:
                         $ref: '#/components/schemas/GoogleProtobufValue'
                     description: Description of repeated value
+                timestamp_type:
+                    type: string
+                    description: Description of wkt timestamp
+                    format: date-time
+                duration_type:
+                    type: string
+                    description: Description of wkt duration
         Message_EmbMessage:
             type: object
             properties:
