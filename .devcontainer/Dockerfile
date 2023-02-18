@@ -16,5 +16,3 @@ RUN PB_REL="https://github.com/protocolbuffers/protobuf/releases" && \
   cp /tmp/bin/* /usr/local/bin/ && \
   chmod +x /usr/local/bin/${NAME} && \
   rm -f ${NAME}.zip
-
-RUN sudo chmod og+w -R /go
