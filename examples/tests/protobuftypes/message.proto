@@ -17,11 +17,12 @@ syntax = "proto3";
 
 package tests.protobuftypes.message.v1;
 
-import "google/api/client.proto";
 import "google/api/annotations.proto";
+import "google/api/client.proto";
 import "google/api/httpbody.proto";
-import "google/protobuf/struct.proto";
+import "google/protobuf/duration.proto";
 import "google/protobuf/empty.proto";
+import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/google/gnostic/apps/protoc-gen-openapi/examples/tests/protobuftypes/message/v1;message";
@@ -104,4 +105,6 @@ message Message {
   repeated google.protobuf.Value repeated_value_type = 14;
   // Description of wkt timestamp
   google.protobuf.Timestamp timestamp_type = 15;
+  // Description of wkt duration
+  google.protobuf.Duration duration_type = 16;
 }
