@@ -3,7 +3,7 @@ FROM mcr.microsoft.com/devcontainers/base:bullseye
 ARG TARGETARCH
 ARG DEBIAN_FRONTEND=noninteractive
 
-# we get x86_64 and aarch64
+# uname typically returns either x86_64 or aarch64
 # Install protoc (x86_64 || aarch_64)
 RUN PB_REL="https://github.com/protocolbuffers/protobuf/releases" && \
   NAME="protoc" && VERSION="22.0" && \
