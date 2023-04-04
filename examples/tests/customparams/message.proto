@@ -27,7 +27,12 @@ option (openapi.file_params) = { headers: [{ name:"FileHeader" }]};
 service Messaging {
     option (openapi.service_params) = {headers:
         [
-            { name:"ServiceHeader", pattern:"^(.*)$" }
+            {
+                name:"ServiceHeader",
+                pattern:"^(.*)$"
+                description:"This is a service header"
+                required:true
+            }
         ]
     };
     // Update Message Summary | This function updates a message.

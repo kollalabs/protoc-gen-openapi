@@ -540,19 +540,30 @@ func (g *OpenAPIv3Generator) buildOperationV3(
 		for _, header := range customParams.Headers {
 			name := ""
 			pattern := ""
+			headerDescription := ""
+			required := false
 			if header.Name != nil {
 				name = *header.Name
 			}
 			if header.Pattern != nil {
 				pattern = *header.Pattern
 			}
+			if header.Description != nil {
+				headerDescription = *header.Description
+			} else {
+				headerDescription = "Custom header: " + name
+			}
+
+			if header.Required != nil {
+				required = *header.Required
+			}
 			parameters = append(parameters, &v3.ParameterOrReference{
 				Oneof: &v3.ParameterOrReference_Parameter{
 					Parameter: &v3.Parameter{
 						Name:        name,
 						In:          "header",
-						Description: "Custom header: " + name,
-						Required:    false,
+						Description: headerDescription,
+						Required:    required,
 						Schema: &v3.SchemaOrReference{
 							Oneof: &v3.SchemaOrReference_Schema{
 								Schema: &v3.Schema{
