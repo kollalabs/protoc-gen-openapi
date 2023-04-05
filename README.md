@@ -2,12 +2,12 @@
 
 Contains a protoc plugin that generates openapi v3 documents
 
-**Forked from [github.com/google/gnostic/cmd/protoc-gen-openapi](https://github.com/google/gnostic/tree/main/cmd/protoc-gen-openapi)** 
+**Forked from [github.com/google/gnostic/cmd/protoc-gen-openapi](https://github.com/google/gnostic/tree/main/cmd/protoc-gen-openapi)**
 
 Installation:
-    
+
     go install github.com/kollalabs/protoc-gen-openapi@latest
-    
+
 Usage:
 
     protoc sample.proto -I. --openapi_out=version=1.2.3:.
@@ -17,7 +17,7 @@ Usage:
 To see output during tests use `log.Print*`
 
 ```
-go clean -testcache && go test 
+go clean -testcache && go test
 ```
 
 ## Added Features
@@ -29,6 +29,7 @@ in a way that won't trip anyone up.
 * [Summary Field](#summary-field)
 * [Validation (protoc-gen-validate)](#validation)
 * [Google Field Behavior Annotations](#google-field-behavior-annotations)
+* [OAS3 header support](#oas3-header-support)
 
 ### Better Enum Support
 Enums work better by using string values of proto enums instead of ints.
@@ -36,10 +37,10 @@ Enums work better by using string values of proto enums instead of ints.
 ### Summary Field
 
 Sometimes you want more control over certain properties in the OpenAPI manifest. In our
-case we wanted to use the `summary` property on routes to look nice for generating 
+case we wanted to use the `summary` property on routes to look nice for generating
 documentation from the OpenAPI manifest. Normally the summary comes simply from the
 name of the route. We added a feature that parses the comment over the proto service
-method and looks for a pipe character ("`|`") and if it sees it, it will take anything to 
+method and looks for a pipe character ("`|`") and if it sees it, it will take anything to
 the left of it and put it in the `summary` field, and anything to the right of it will
 be the `description`. If no pipe is found it puts the whole comment in the description
 like normal. From `/examples/tests/summary/message.proto`:
@@ -74,12 +75,12 @@ paths:
 
 We added partial support for `protoc-gen-validate` annotations
 
-OpenAPI spec allows for a small handful of input validation configurations. 
+OpenAPI spec allows for a small handful of input validation configurations.
 Proto has an awesome plugin called `protoc-gen-validate` for generating validation code in
 Go, Java, C++, etc. We took those same annotations and added support in this project
 for them.
 
-Usage: add `validate=true` to protoc command. 
+Usage: add `validate=true` to protoc command.
 
 `protoc sample.proto -I. --openapi_out=version=1.2.3,validate=true:.`
 
@@ -88,9 +89,9 @@ Usage: add `validate=true` to protoc command.
 ```proto
 message Message {
     string message_id = 1;
-    string text = 2 [(validate.rules)= { 
+    string text = 2 [(validate.rules)= {
         string: {
-            uri:true, 
+            uri:true,
             max_len:45,
             min_len:1
         }
@@ -149,3 +150,6 @@ Adding more can easily be done in the function `addValidationRules` in `/generat
 * `(google.api.field_behavior) = OUTPUT_ONLY` will add the `readOnly` property to the field
 * `(google.api.field_behavior) = INPUT_ONLY` will add the `writeOnly` property to the field
 * TODO: `(google.api.field_behavior) = IMMUTABLE` will add the `x-createOnly` property to the field (not supported by openapi yet)
+
+### OAS3 header support
+

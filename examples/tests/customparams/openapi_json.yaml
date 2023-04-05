@@ -21,7 +21,8 @@ paths:
                     type: string
                 - name: ServiceHeader
                   in: header
-                  description: 'Custom header: ServiceHeader'
+                  description: This is a service header
+                  required: true
                   schema:
                     pattern: ^(.*)$
                     type: string

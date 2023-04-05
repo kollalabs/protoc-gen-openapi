@@ -16,18 +16,19 @@ extend google.protobuf.ServiceOptions {
   optional Parameters service_params = 66701;
 }
 
-// Parameters at the file level are added to every method in every service in the file 
+// Parameters at the file level are added to every method in every service in the file
 extend google.protobuf.FileOptions {
     optional Parameters file_params = 66702;
-}   
+}
 
 
 message Parameters {
-    repeated Header headers = 1; 
+    repeated Header headers = 1;
 }
 
 message Header {
     optional string name = 1;
     optional string pattern = 2;
     optional string description = 3;
+    optional bool required = 4;
 }
