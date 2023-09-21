@@ -4,12 +4,14 @@ go 1.17
 
 require (
 	github.com/envoyproxy/protoc-gen-validate v0.9.1
-	github.com/google/gnostic v0.6.9
-	google.golang.org/genproto v0.0.0-20220107163113-42d7afdf6368
-	google.golang.org/protobuf v1.28.1
+	github.com/google/gnostic v0.7.0
+	google.golang.org/genproto/googleapis/api v0.0.0-20230525234035-dd9d682886f9
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20230525234030-28d5490b6b19
+	google.golang.org/protobuf v1.30.0
 )
 
 require (
-	github.com/golang/protobuf v1.5.2 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
+	github.com/google/gnostic-models v0.6.9-0.20230804172637-c7be7c783f49 // indirect
+	google.golang.org/genproto v0.0.0-20230526161137-0005af68ea54 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
