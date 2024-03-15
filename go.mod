@@ -3,10 +3,10 @@ module github.com/kollalabs/protoc-gen-openapi
 go 1.17
 
 require (
-	github.com/envoyproxy/protoc-gen-validate v0.9.1
+	github.com/envoyproxy/protoc-gen-validate v1.0.4
 	github.com/google/gnostic v0.6.9
 	google.golang.org/genproto v0.0.0-20220107163113-42d7afdf6368
-	google.golang.org/protobuf v1.28.1
+	google.golang.org/protobuf v1.32.0
 )
 
 require (
