@@ -24,6 +24,7 @@ extend google.protobuf.FileOptions {
 
 message Parameters {
     repeated Header headers = 1;
+    repeated string build_tags = 2;
 }
 
 message Header {

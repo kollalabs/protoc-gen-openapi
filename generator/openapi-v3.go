@@ -46,6 +46,7 @@ type Configuration struct {
 	CircularDepth   *int
 	DefaultResponse *bool
 	Validate        *bool
+	BuildTag        *string // Kolla
 }
 
 const (
@@ -536,46 +537,59 @@ func (g *OpenAPIv3Generator) buildOperationV3(
 	}
 
 	// If there are any customParams, then iterate over them and add them to the parameter list
+	// First check if there are is a build tag set and don't run this if it is not set
 	if customParams != nil {
-		for _, header := range customParams.Headers {
-			name := ""
-			pattern := ""
-			headerDescription := ""
-			required := false
-			if header.Name != nil {
-				name = *header.Name
+		doGenerate := true
+		if customParams.BuildTags != nil && len(customParams.BuildTags) > 0 {
+			doGenerate = false
+			for _, tag := range customParams.BuildTags {
+				if tag == *g.conf.BuildTag {
+					doGenerate = true
+					break
+				}
 			}
-			if header.Pattern != nil {
-				pattern = *header.Pattern
-			}
-			if header.Description != nil {
-				headerDescription = *header.Description
-			} else {
-				headerDescription = "Custom header: " + name
-			}
+		}
+		if doGenerate {
+			for _, header := range customParams.Headers {
+				name := ""
+				pattern := ""
+				headerDescription := ""
+				required := false
+				if header.Name != nil {
+					name = *header.Name
+				}
+				if header.Pattern != nil {
+					pattern = *header.Pattern
+				}
+				if header.Description != nil {
+					headerDescription = *header.Description
+				} else {
+					headerDescription = "Custom header: " + name
+				}
 
-			if header.Required != nil {
-				required = *header.Required
-			}
-			parameters = append(parameters, &v3.ParameterOrReference{
-				Oneof: &v3.ParameterOrReference_Parameter{
-					Parameter: &v3.Parameter{
-						Name:        name,
-						In:          "header",
-						Description: headerDescription,
-						Required:    required,
-						Schema: &v3.SchemaOrReference{
-							Oneof: &v3.SchemaOrReference_Schema{
-								Schema: &v3.Schema{
-									Type:    "string",
-									Pattern: pattern,
+				if header.Required != nil {
+					required = *header.Required
+				}
+				parameters = append(parameters, &v3.ParameterOrReference{
+					Oneof: &v3.ParameterOrReference_Parameter{
+						Parameter: &v3.Parameter{
+							Name:        name,
+							In:          "header",
+							Description: headerDescription,
+							Required:    required,
+							Schema: &v3.SchemaOrReference{
+								Oneof: &v3.SchemaOrReference_Schema{
+									Schema: &v3.Schema{
+										Type:    "string",
+										Pattern: pattern,
+									},
 								},
 							},
 						},
 					},
 				},
-			},
-			)
+				)
+			}
 		}
 	}
 

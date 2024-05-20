@@ -35,6 +35,7 @@ func main() {
 		CircularDepth:   flags.Int("depth", 2, "depth of recursion for circular messages"),
 		DefaultResponse: flags.Bool("default_response", true, `add default response. If "true", automatically adds a default response to operations which use the google.rpc.Status message. Useful if you use envoy or grpc-gateway to transcode as they use this type for their default error responses.`),
 		Validate:        flags.Bool("validate", false, "parse protoc-gen-validate options that are supported into openapi field options"),
+		BuildTag:        flags.String("build_tag", "", "build tag to add to the generated files"),
 	}
 
 	opts := protogen.Options{

@@ -41,6 +41,7 @@ var openapiTests = []struct {
 	{name: "Validate", path: "examples/tests/validate/", protofile: "message.proto"},
 	{name: "Field behaviors", path: "examples/tests/fieldbehaviors/", protofile: "message.proto"},
 	{name: "Custom Params", path: "examples/tests/customparams/", protofile: "message.proto"},
+	{name: "Custom Params with build tag set", path: "examples/tests/customparamsbuildtag/", protofile: "message.proto"},
 }
 
 func TestOpenAPIProtobufNaming(t *testing.T) {
@@ -53,7 +54,7 @@ func TestOpenAPIProtobufNaming(t *testing.T) {
 				"-I",
 				"examples",
 				path.Join(tt.path, tt.protofile),
-				"--openapi_out=naming=proto,validate=true:.",
+				"--openapi_out=naming=proto,validate=true,build_tag=postman:.",
 			}
 			out, err := exec.Command("protoc", cmd...).CombinedOutput()
 			if err != nil {
