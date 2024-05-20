@@ -19,6 +19,13 @@ paths:
                   required: true
                   schema:
                     type: string
+                - name: ServiceHeader
+                  in: header
+                  description: This is a service header
+                  required: true
+                  schema:
+                    pattern: ^(.*)$
+                    type: string
             requestBody:
                 content:
                     application/json:

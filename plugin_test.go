@@ -54,7 +54,7 @@ func TestOpenAPIProtobufNaming(t *testing.T) {
 				"-I",
 				"examples",
 				path.Join(tt.path, tt.protofile),
-				"--openapi_out=naming=proto,validate=true:.",
+				"--openapi_out=naming=proto,validate=true,build_tag=postman:.",
 			}
 			out, err := exec.Command("protoc", cmd...).CombinedOutput()
 			if err != nil {
