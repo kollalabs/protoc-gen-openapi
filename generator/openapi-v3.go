@@ -28,8 +28,10 @@ import (
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/types/known/anypb"
 	any_pb "google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/golang/protobuf/ptypes/wrappers"
 	wk "github.com/google/gnostic/cmd/protoc-gen-openapi/generator/wellknown"
 	v3 "github.com/google/gnostic/openapiv3"
 
@@ -555,6 +557,8 @@ func (g *OpenAPIv3Generator) buildOperationV3(
 				pattern := ""
 				headerDescription := ""
 				required := false
+				example := &v3.Any{}
+
 				if header.Name != nil {
 					name = *header.Name
 				}
@@ -570,7 +574,8 @@ func (g *OpenAPIv3Generator) buildOperationV3(
 				if header.Required != nil {
 					required = *header.Required
 				}
-				parameters = append(parameters, &v3.ParameterOrReference{
+
+				parameter := &v3.ParameterOrReference{
 					Oneof: &v3.ParameterOrReference_Parameter{
 						Parameter: &v3.Parameter{
 							Name:        name,
@@ -587,8 +592,22 @@ func (g *OpenAPIv3Generator) buildOperationV3(
 							},
 						},
 					},
-				},
-				)
+				}
+
+				if header.Example != nil && *header.Example != "" {
+					bytesValue := &wrappers.BytesValue{Value: []byte(*header.Example)}
+					exampleValue := &anypb.Any{}
+					err := anypb.MarshalFrom(exampleValue, bytesValue, proto.MarshalOptions{})
+					if err != nil {
+						fmt.Println("Error marshalling example value: ", err)
+					} else {
+						example.Value = exampleValue
+						example.Yaml = *header.Example
+						parameter.Oneof.(*v3.ParameterOrReference_Parameter).Parameter.Example = example
+					}
+				}
+
+				parameters = append(parameters, parameter)
 			}
 		}
 	}

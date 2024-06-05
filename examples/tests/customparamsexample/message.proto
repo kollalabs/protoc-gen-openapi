@@ -25,17 +25,16 @@ option go_package = "github.com/google/gnostic/apps/protoc-gen-openapi/examples/
 option (openapi.file_params) = { headers: [{ name:"FileHeader" }]};
 
 service Messaging {
-    option (openapi.service_params) = {
-        headers:
+    option (openapi.service_params) = {headers:
         [
             {
                 name:"ServiceHeader",
                 pattern:"^(.*)$"
                 description:"This is a service header"
-                required:true,
+                required:true
+                example:"\"{{consumer-id}}\""
             }
-        ],
-        build_tags: ["postman"]
+        ]
     };
     // Update Message Summary | This function updates a message.
     // (-- api-linter: core::0xxx::xxx=disabled
