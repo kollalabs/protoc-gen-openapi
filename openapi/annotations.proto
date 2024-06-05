@@ -32,4 +32,5 @@ message Header {
     optional string pattern = 2;
     optional string description = 3;
     optional bool required = 4;
+    optional string example = 5;
 }
