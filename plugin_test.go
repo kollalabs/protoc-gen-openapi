@@ -42,6 +42,7 @@ var openapiTests = []struct {
 	{name: "Field behaviors", path: "examples/tests/fieldbehaviors/", protofile: "message.proto"},
 	{name: "Custom Params", path: "examples/tests/customparams/", protofile: "message.proto"},
 	{name: "Custom Params with build tag set", path: "examples/tests/customparamsbuildtag/", protofile: "message.proto"},
+	{name: "Custom Params with build tag set for excluding method", path: "examples/tests/customparamsexclude/", protofile: "message.proto"},
 }
 
 func TestOpenAPIProtobufNaming(t *testing.T) {
