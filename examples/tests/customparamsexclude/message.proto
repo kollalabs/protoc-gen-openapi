@@ -48,8 +48,7 @@ service Messaging {
         option (openapi.method_params) = { 
             headers: [
                 { name:"MethodHeader"}
-            ],
-            build_tags: ["postman"]
+            ]
         };
     }
 }

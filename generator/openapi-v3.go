@@ -789,6 +789,12 @@ func (g *OpenAPIv3Generator) addPathsToDocumentV3(d *v3.Document, services []*pr
 			var methodName string
 			var body string
 
+			var methodParams *open_api_extensions.Parameters
+			methodOptionsParams := proto.GetExtension(method.Desc.Options(), open_api_extensions.E_MethodParams)
+			if methodOptionsParams != nil && methodOptionsParams != open_api_extensions.E_MethodParams.InterfaceOf(open_api_extensions.E_MethodParams.Zero()) {
+				methodParams = methodOptionsParams.(*open_api_extensions.Parameters)
+			}
+
 			extHTTP := proto.GetExtension(method.Desc.Options(), annotations.E_Http)
 			if extHTTP != nil && extHTTP != annotations.E_Http.InterfaceOf(annotations.E_Http.Zero()) {
 				annotationsCount++
@@ -817,20 +823,36 @@ func (g *OpenAPIv3Generator) addPathsToDocumentV3(d *v3.Document, services []*pr
 					path = "unknown-unsupported"
 				}
 			}
-
-			if methodName != "" {
-				defaultHost := proto.GetExtension(service.Desc.Options(), annotations.E_DefaultHost).(string)
-
-				op, path2 := g.buildOperationV3(
-					d, summary, operationID, service.GoName, comment, defaultHost, path, body, inputMessage, outputMessage, params)
-
-				// Merge any `Operation` annotations with the current
-				extOperation := proto.GetExtension(method.Desc.Options(), v3.E_Operation)
-				if extOperation != nil {
-					proto.Merge(op, extOperation.(*v3.Operation))
+			// If build tags exist, and a built tag is set in the protoc command, then only generate the method if the build tag is set
+			doGenerate := true
+			// If a build tag is set in the protoc command, then only generate the method if the build tag is set on the proto options
+			if *g.conf.BuildTag != "" {
+				doGenerate = false
+			}
+			if methodParams != nil && methodParams.BuildTags != nil && len(methodParams.BuildTags) > 0 {
+				for _, tag := range methodParams.BuildTags {
+					if tag == *g.conf.BuildTag {
+						doGenerate = true
+						break
+					}
 				}
+			}
+			if doGenerate {
+				if methodName != "" {
 
-				g.addOperationToDocumentV3(d, op, path2, methodName)
+					defaultHost := proto.GetExtension(service.Desc.Options(), annotations.E_DefaultHost).(string)
+
+					op, path2 := g.buildOperationV3(
+						d, summary, operationID, service.GoName, comment, defaultHost, path, body, inputMessage, outputMessage, params)
+
+					// Merge any `Operation` annotations with the current
+					extOperation := proto.GetExtension(method.Desc.Options(), v3.E_Operation)
+					if extOperation != nil {
+						proto.Merge(op, extOperation.(*v3.Operation))
+					}
+
+					g.addOperationToDocumentV3(d, op, path2, methodName)
+				}
 			}
 		}
 
