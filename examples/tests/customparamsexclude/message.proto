@@ -45,7 +45,11 @@ service Messaging {
             patch: "/v1/messages/{message_id}"
             body: "text"
         };
-        option (openapi.method_params) = { headers: [{name:"MethodHeader"}], build_tags: ["exclude"] };
+        option (openapi.method_params) = { 
+            headers: [
+                { name:"MethodHeader"}
+            ]
+        };
     }
 }
 message Message {

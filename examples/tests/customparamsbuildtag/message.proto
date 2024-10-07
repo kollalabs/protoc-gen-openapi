@@ -45,7 +45,12 @@ service Messaging {
             patch: "/v1/messages/{message_id}"
             body: "text"
         };
-        option (openapi.method_params) = { headers: [{name:"MethodHeader"}]};
+        option (openapi.method_params) = { 
+            headers: [
+                { name:"MethodHeader"}
+            ],
+            build_tags: ["postman"]
+        };
     }
 }
 message Message {
