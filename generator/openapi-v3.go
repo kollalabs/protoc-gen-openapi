@@ -837,10 +837,16 @@ func (g *OpenAPIv3Generator) addPathsToDocumentV3(d *v3.Document, services []*pr
 					}
 				}
 			}
-			log.Print(doGenerate)
 
-			if *g.conf.BuildTag == "postman" { //always generate for postman build_tag
-				doGenerate = true
+			//Check if any build tags exists
+			if params != nil && params.BuildTags != nil && len(params.BuildTags) > 0 {
+				//check if build tag is postman and set doGenerate to true
+				for _, tag := range params.BuildTags {
+					if tag == "postman" {
+						doGenerate = true
+						break
+					}
+				}
 			}
 
 			if doGenerate {
