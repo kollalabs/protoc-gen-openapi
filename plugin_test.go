@@ -44,6 +44,7 @@ var openapiTests = []struct {
 	{name: "Custom Params", path: "examples/tests/customparams/", protofile: "message.proto"},
 	{name: "Custom Params with build tag set", path: "examples/tests/customparamsbuildtag/", protofile: "message.proto", buildTag: "postman"},
 	{name: "Custom Params with build tag set for excluding method", path: "examples/tests/customparamsexclude/", protofile: "message.proto", buildTag: "public_docs"},
+	{name: "Custom Params with build tag set not building", path: "examples/tests/customparamnotbuilding/", protofile: "message.proto", buildTag: "postman"},
 }
 
 func TestOpenAPIProtobufNaming(t *testing.T) {
@@ -63,6 +64,7 @@ func TestOpenAPIProtobufNaming(t *testing.T) {
 				path.Join(tt.path, tt.protofile),
 				openAPICommand,
 			}
+			fmt.Printf("Running protoc %s\n", strings.Join(cmd, " "))
 			out, err := exec.Command("protoc", cmd...).CombinedOutput()
 			if err != nil {
 				fmt.Println(string(out))
