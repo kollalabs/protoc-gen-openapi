@@ -52,7 +52,8 @@ type Configuration struct {
 }
 
 const (
-	infoURL = "https://github.com/kollalabs/protoc-gen-openapi"
+	infoURL            = "https://github.com/kollalabs/protoc-gen-openapi"
+	BuildTagPublicDocs = "public_docs"
 )
 
 // In order to dynamically add google.rpc.Status responses we need
@@ -826,9 +827,10 @@ func (g *OpenAPIv3Generator) addPathsToDocumentV3(d *v3.Document, services []*pr
 			// If build tags exist, and a built tag is set in the protoc command, then only generate the method if the build tag is set
 			doGenerate := true
 			// If a build tag is set in the protoc command, then only generate the method if the build tag is set on the proto options
-			if *g.conf.BuildTag != "" {
+			if *g.conf.BuildTag != "" && *g.conf.BuildTag == BuildTagPublicDocs {
 				doGenerate = false
 			}
+
 			if methodParams != nil && methodParams.BuildTags != nil && len(methodParams.BuildTags) > 0 {
 				for _, tag := range methodParams.BuildTags {
 					if tag == *g.conf.BuildTag {
@@ -837,6 +839,7 @@ func (g *OpenAPIv3Generator) addPathsToDocumentV3(d *v3.Document, services []*pr
 					}
 				}
 			}
+
 			if doGenerate {
 				if methodName != "" {
 

@@ -27,7 +27,7 @@ var openapiTests = []struct {
 	name      string
 	path      string
 	protofile string
-	buildTag  string
+	buildTag  []string
 }{
 	{name: "Google Library example", path: "examples/google/example/library/v1/", protofile: "library.proto"},
 	{name: "Body mapping", path: "examples/tests/bodymapping/", protofile: "message.proto"},
@@ -42,8 +42,10 @@ var openapiTests = []struct {
 	{name: "Validate", path: "examples/tests/validate/", protofile: "message.proto"},
 	{name: "Field behaviors", path: "examples/tests/fieldbehaviors/", protofile: "message.proto"},
 	{name: "Custom Params", path: "examples/tests/customparams/", protofile: "message.proto"},
-	{name: "Custom Params with build tag set", path: "examples/tests/customparamsbuildtag/", protofile: "message.proto", buildTag: "postman"},
-	{name: "Custom Params with build tag set for excluding method", path: "examples/tests/customparamsexclude/", protofile: "message.proto", buildTag: "public_docs"},
+	{name: "Custom Params with build tag set", path: "examples/tests/customparamsbuildtag/", protofile: "message.proto", buildTag: []string{"postman"}},
+	{name: "Custom Params with build tag set for excluding method", path: "examples/tests/customparamsexclude/", protofile: "message.proto", buildTag: []string{"public_docs"}},
+	{name: "Custom Params with build tag postman", path: "examples/tests/customparamspostmanonly/", protofile: "message.proto", buildTag: []string{"postman"}},
+	{name: "Custom Params with build tag postman and public_docs", path: "examples/tests/customparamspostmanandpublic/", protofile: "message.proto", buildTag: []string{"postman", "public_docs"}},
 }
 
 func TestOpenAPIProtobufNaming(t *testing.T) {
@@ -51,8 +53,11 @@ func TestOpenAPIProtobufNaming(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Run protoc and the protoc-gen-openapi plugin to generate an OpenAPI spec.
 			openAPICommand := "--openapi_out=version=0.0.1,naming=proto,validate=true"
-			if tt.buildTag != "" {
-				openAPICommand += ",build_tag=" + tt.buildTag
+			//loop over build tags and add them to the command
+			if len(tt.buildTag) > 0 {
+				for _, tag := range tt.buildTag {
+					openAPICommand += ",build_tag=" + tag
+				}
 			}
 			openAPICommand += ":."
 			cmd := []string{
@@ -63,6 +68,7 @@ func TestOpenAPIProtobufNaming(t *testing.T) {
 				path.Join(tt.path, tt.protofile),
 				openAPICommand,
 			}
+			fmt.Printf("Running protoc %s\n", strings.Join(cmd, " "))
 			out, err := exec.Command("protoc", cmd...).CombinedOutput()
 			if err != nil {
 				fmt.Println(string(out))
