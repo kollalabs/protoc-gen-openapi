@@ -45,7 +45,11 @@ func singular(plural string) string {
 		return strings.TrimSuffix(plural, "ves") + "f"
 	}
 	if strings.HasSuffix(plural, "ies") {
-		return strings.TrimSuffix(plural, "ies") + "y"
+		if plural == "series" || plural == "species" {
+			return plural
+		} else {
+			return strings.TrimSuffix(plural, "ies") + "y"
+		}
 	}
 	if strings.HasSuffix(plural, "s") {
 		return strings.TrimSuffix(plural, "s")
