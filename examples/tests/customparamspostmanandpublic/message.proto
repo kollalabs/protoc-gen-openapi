@@ -45,11 +45,17 @@ service Messaging {
             patch: "/v1/messages/{message_id}"
             body: "text"
         };
-        option (openapi.method_params) = { 
-            headers: [
-                { name:"MethodHeader"}
-            ],
-            build_tags: ["postman"]
+    }
+    // Get Message Summary | This function gets a message.
+    // (-- api-linter: core::0xxx::xxx=disabled
+    //     aip.dev/not-precedent: We need to do this because reasons. --)
+    rpc GetMessaage(Message) returns(Message) {
+        option (google.api.http) = {
+            patch: "/v1/messages/{message_id}"
+            body: "text"
+        };
+        option (openapi.method_params) = {
+            build_tags: ["public_docs"]
         };
     }
 }
