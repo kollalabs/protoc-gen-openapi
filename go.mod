@@ -8,7 +8,7 @@ require (
 	github.com/google/gnostic v0.7.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20250425173222-7b384671a197
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250425173222-7b384671a197
-	google.golang.org/protobuf v1.36.6
+	google.golang.org/protobuf v1.36.11
 )
 
 require (
