@@ -9,11 +9,23 @@ updates:
     directory: "/.devcontainer" # Location of package manifests
     schedule:
       interval: "daily"
+    groups:
+      all-dependencies:
+        patterns:
+          - "*"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "daily"
+    groups:
+      all-dependencies:
+        patterns:
+          - "*"
   - package-ecosystem: "gomod" # See documentation for possible values
     directory: "/" # Location of package manifests
     schedule:
       interval: "daily"
+    groups:
+      all-dependencies:
+        patterns:
+          - "*"
