@@ -46,6 +46,8 @@ var openapiTests = []struct {
 	{name: "Custom Params with build tag set for excluding method", path: "examples/tests/customparamsexclude/", protofile: "message.proto", buildTag: []string{"public_docs"}},
 	{name: "Custom Params with build tag postman", path: "examples/tests/customparamspostmanonly/", protofile: "message.proto", buildTag: []string{"postman"}},
 	{name: "Custom Params with build tag postman and public_docs", path: "examples/tests/customparamspostmanandpublic/", protofile: "message.proto", buildTag: []string{"postman", "public_docs"}},
+	{name: "Internal docs method hidden from an untagged build", path: "examples/tests/internaldocs/", protofile: "message.proto"},
+	{name: "Internal docs method shown to the internal_docs build", path: "examples/tests/internaldocsincluded/", protofile: "message.proto", buildTag: []string{"internal_docs"}},
 }
 
 func TestOpenAPIProtobufNaming(t *testing.T) {
@@ -95,11 +97,17 @@ func TestOpenAPIJSONNaming(t *testing.T) {
 	for _, tt := range openapiTests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Run protoc and the protoc-gen-openapi plugin to generate an OpenAPI spec with JSON naming.
+			openAPICommand := "--openapi_out=version=1.2.3,validate=true"
+			//loop over build tags and add them to the command
+			for _, tag := range tt.buildTag {
+				openAPICommand += ",build_tag=" + tag
+			}
+			openAPICommand += ":."
 			out, err := exec.Command("protoc",
 				"-I", "./",
 				"-I", "examples",
 				path.Join(tt.path, tt.protofile),
-				"--openapi_out=version=1.2.3,validate=true:.").CombinedOutput()
+				openAPICommand).CombinedOutput()
 			if err != nil {
 				fmt.Println(string(out))
 				t.Fatalf("protoc failed: %+v", err)

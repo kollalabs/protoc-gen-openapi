@@ -1,0 +1,77 @@
+// Copyright 2020 Google LLC.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
+syntax = "proto3";
+
+package tests.internaldocs.message.v1;
+
+import "google/api/annotations.proto";
+import "openapi/annotations.proto";
+
+option go_package = "github.com/google/gnostic/apps/protoc-gen-openapi/examples/tests/internaldocs/message/v1;message";
+
+// A service with one public method and one that only internal documentation
+// may show. The same proto is generated once without a build tag (the public
+// method only) and once with build_tag=internal_docs (both).
+service Messaging {
+    // Get Message | Reads a message.
+    rpc GetMessage(GetMessageRequest) returns(Message) {
+        option (google.api.http) = {
+            get: "/v1/messages/{message_id}"
+        };
+    }
+
+    // List Changes | Internal change feed; kept out of public documentation.
+    rpc ListChanges(ListChangesRequest) returns(ListChangesResponse) {
+        option (google.api.http) = {
+            get: "/v1/changes"
+        };
+        option (openapi.method_params) = {
+            build_tags: ["internal_docs"]
+        };
+    }
+}
+
+// A service whose every method is internal: a build that carries none of
+// them must not carry the service's tag (and this description) either.
+service Feed {
+    // List Feed | Internal feed; kept out of public documentation.
+    rpc ListFeed(ListChangesRequest) returns(ListChangesResponse) {
+        option (google.api.http) = {
+            get: "/v1/feed"
+        };
+        option (openapi.method_params) = {
+            build_tags: ["internal_docs"]
+        };
+    }
+}
+
+message GetMessageRequest {
+    string message_id = 1;
+}
+
+message Message {
+    string message_id = 1;
+    string text = 2;
+}
+
+message ListChangesRequest {
+    string cursor = 1;
+}
+
+message ListChangesResponse {
+    repeated Message messages = 1;
+    string next_cursor = 2;
+}
