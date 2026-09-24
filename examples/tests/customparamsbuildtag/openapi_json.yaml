@@ -24,6 +24,13 @@ paths:
                   description: 'Custom header: FileHeader'
                   schema:
                     type: string
+                - name: ServiceHeader
+                  in: header
+                  description: This is a service header
+                  required: true
+                  schema:
+                    pattern: ^(.*)$
+                    type: string
                 - name: MethodHeader
                   in: header
                   description: 'Custom header: MethodHeader'
