@@ -63,11 +63,6 @@ paths:
                   schema:
                     type: integer
                     format: int32
-                - name: recursiveType.child.parent.child.parent.parentId
-                  in: query
-                  schema:
-                    type: integer
-                    format: int32
                 - name: embeddedType.messageId
                   in: query
                   schema:
@@ -190,11 +185,6 @@ paths:
                     type: integer
                     format: int32
                 - name: recursiveType.child.parent.child.childId
-                  in: query
-                  schema:
-                    type: integer
-                    format: int32
-                - name: recursiveType.child.parent.child.parent.parentId
                   in: query
                   schema:
                     type: integer

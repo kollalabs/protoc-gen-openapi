@@ -18,6 +18,7 @@ package tests.schemacollision.message.v1;
 
 import "google/api/annotations.proto";
 import "tests/schemacollision/other.proto";
+import "tests/schemacollision/unused.proto";
 
 option go_package = "github.com/google/gnostic/apps/protoc-gen-openapi/examples/tests/schemacollision/message/v1;message";
 
@@ -33,16 +34,25 @@ message GetContactRequest {
   string contact_id = 1;
 }
 
+// Declared before Contact, so it's only required after the imported Address was already visited.
+message Address {
+  string city = 1;
+}
+
 message Contact {
   string email = 1;
   tests.schemacollision.other.v1.Contact external = 2;
   Address address = 3;
   Middle.Inner inner = 4;
   tests.schemacollision.other.v1.Outer.Middle.Inner other_inner = 5;
+  // Same name as google.rpc.Status, used by the default response.
+  Status status = 6;
+  // Collides only with an unreferenced message, so it keeps its name.
+  tests.schemacollision.other.v1.Phone phone = 7;
 }
 
-message Address {
-  string city = 1;
+message Status {
+  string state = 1;
 }
 
 message Middle {

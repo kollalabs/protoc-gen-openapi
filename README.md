@@ -186,8 +186,8 @@ Add header parameters with `openapi.file_params`, `openapi.service_params` or `o
 (see [openapi/annotations.proto](openapi/annotations.proto)). A method header replaces a service or file header
 with the same name.
 
-File and service options only apply when their `build_tags` (if any) include the `build_tag` plugin option.
-A method's `build_tags` decide whether the method is generated at all.
+Options only apply when their `build_tags` (if any) include the `build_tag` plugin option.
+A method's `build_tags` also decide whether the method is generated (see [Build tags](#build-tags)).
 
 ### Custom responses
 

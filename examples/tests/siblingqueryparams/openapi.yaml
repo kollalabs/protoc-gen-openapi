@@ -25,6 +25,34 @@ paths:
                   in: query
                   schema:
                     type: string
+                - name: expression.a.value
+                  in: query
+                  schema:
+                    type: string
+                - name: expression.b.value
+                  in: query
+                  schema:
+                    type: string
+                - name: expression.c.value
+                  in: query
+                  schema:
+                    type: string
+                - name: expression.d.value
+                  in: query
+                  schema:
+                    type: string
+                - name: expression.e.value
+                  in: query
+                  schema:
+                    type: string
+                - name: expression.f.value
+                  in: query
+                  schema:
+                    type: string
+                - name: expression.value
+                  in: query
+                  schema:
+                    type: string
             responses:
                 "200":
                     description: OK

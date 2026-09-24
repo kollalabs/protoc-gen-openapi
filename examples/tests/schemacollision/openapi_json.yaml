@@ -30,7 +30,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/Status'
+                                $ref: '#/components/schemas/google.rpc.Status'
 components:
     schemas:
         Address:
@@ -38,6 +38,7 @@ components:
             properties:
                 city:
                     type: string
+            description: Declared before Contact, so it's only required after the imported Address was already visited.
         Contact:
             type: object
             properties:
@@ -51,6 +52,10 @@ components:
                     $ref: '#/components/schemas/Middle_Inner'
                 otherInner:
                     $ref: '#/components/schemas/tests.schemacollision.other.v1.Outer_Middle_Inner'
+                status:
+                    $ref: '#/components/schemas/Status'
+                phone:
+                    $ref: '#/components/schemas/Phone'
         GoogleProtobufAny:
             type: object
             properties:
@@ -64,7 +69,17 @@ components:
             properties:
                 value:
                     type: string
+        Phone:
+            type: object
+            properties:
+                number:
+                    type: string
         Status:
+            type: object
+            properties:
+                state:
+                    type: string
+        google.rpc.Status:
             type: object
             properties:
                 code:

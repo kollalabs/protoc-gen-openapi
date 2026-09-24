@@ -32,6 +32,7 @@ service Search {
 // regardless of the circular depth limit.
 message SearchPlacesRequest {
   Filter filter = 1;
+  Expression expression = 2;
 }
 
 message Filter {
@@ -46,4 +47,15 @@ message Address {
 
 message SearchPlacesResponse {
   repeated string names = 1;
+}
+
+// Many self-references must not expand exponentially.
+message Expression {
+  Expression a = 1;
+  Expression b = 2;
+  Expression c = 3;
+  Expression d = 4;
+  Expression e = 5;
+  Expression f = 6;
+  string value = 7;
 }

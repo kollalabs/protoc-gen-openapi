@@ -48,12 +48,3 @@ func enumNamesToV3Any(field protoreflect.FieldDescriptor, keep func(v protorefle
 	}
 	return list
 }
-
-func has(list []int32, number int32) bool {
-	for _, v := range list {
-		if v == number {
-			return true
-		}
-	}
-	return false
-}

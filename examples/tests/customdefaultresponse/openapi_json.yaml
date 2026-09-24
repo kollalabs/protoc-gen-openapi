@@ -1,0 +1,47 @@
+# Generated with protoc-gen-openapi
+# https://github.com/kollalabs/protoc-gen-openapi
+
+openapi: 3.0.3
+info:
+    title: Messaging API
+    version: 1.2.3
+paths:
+    /v1/messages/{messageId}:
+        get:
+            tags:
+                - Messaging
+            summary: GetMessage
+            operationId: Messaging_GetMessage
+            parameters:
+                - name: messageId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Message'
+                default:
+                    description: Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorResponse'
+components:
+    schemas:
+        ErrorResponse:
+            type: object
+            properties:
+                error:
+                    type: string
+        Message:
+            type: object
+            properties:
+                messageId:
+                    type: string
+tags:
+    - name: Messaging

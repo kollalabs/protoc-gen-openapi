@@ -22,16 +22,18 @@ func TestSummary(t *testing.T) {
 
 func TestResourceNamePattern(t *testing.T) {
 	tests := []struct {
-		pattern string
-		want    string
+		pattern   string
+		idPattern string
+		want      string
 	}{
-		{"shelves/{shelf}/books/{book}", "^shelves/[a-z2-7]{26}/books/[a-z2-7]{26}$"},
-		{"projects/{project}/v1.0/{item}", `^projects/[a-z2-7]{26}/v1\.0/[a-z2-7]{26}$`},
-		{"settings", "^settings$"},
+		{"shelves/{shelf}/books/{book}", "[a-z2-7]{26}", "^shelves/[a-z2-7]{26}/books/[a-z2-7]{26}$"},
+		{"projects/{project}/v1.0/{item}", "[a-z2-7]{26}", `^projects/[a-z2-7]{26}/v1\.0/[a-z2-7]{26}$`},
+		{"settings", "[a-z2-7]{26}", "^settings$"},
+		{"shelves/{shelf}", "[0-9]+|[a-z]{26}", "^shelves/(?:[0-9]+|[a-z]{26})$"},
 	}
 	for _, tt := range tests {
-		if got := resourceNamePattern(tt.pattern, "[a-z2-7]{26}"); got != tt.want {
-			t.Errorf("resourceNamePattern(%q) = %q, want %q", tt.pattern, got, tt.want)
+		if got := resourceNamePattern(tt.pattern, tt.idPattern); got != tt.want {
+			t.Errorf("resourceNamePattern(%q, %q) = %q, want %q", tt.pattern, tt.idPattern, got, tt.want)
 		}
 	}
 }

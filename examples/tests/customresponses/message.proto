@@ -69,6 +69,22 @@ service Messaging {
             }
         };
     }
+
+    // Tagged method params are left out unless the build tag matches.
+    rpc ArchiveMessage(Message) returns(Message) {
+        option (google.api.http) = {
+            post: "/v1/messages/{message_id}:archive"
+            body: "*"
+        };
+        option (openapi.method_params) = {
+            build_tags: ["internal"]
+            headers: [{ name: "X-Internal" }]
+            custom_responses: {
+                key: "409"
+                value: {}
+            }
+        };
+    }
 }
 
 // Responses gated by build_tags are left out unless the build tag matches.

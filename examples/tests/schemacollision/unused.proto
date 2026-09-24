@@ -14,29 +14,11 @@
 //
 syntax = "proto3";
 
-package tests.schemacollision.other.v1;
+package tests.schemacollision.unused.v1;
 
-option go_package = "github.com/google/gnostic/apps/protoc-gen-openapi/examples/tests/schemacollision/other/v1;other";
+option go_package = "github.com/google/gnostic/apps/protoc-gen-openapi/examples/tests/schemacollision/unused/v1;unused";
 
-// Same name as the generated package's Contact; referenced, so it must be package-qualified.
-message Contact {
-  string url = 1;
-}
-
-// Same name as the generated package's Address; never referenced, so it must not appear.
-message Address {
-  string country = 1;
-}
-
-message Outer {
-  message Middle {
-    // Would be named Middle_Inner if only the direct parent were used.
-    message Inner {
-      string other_value = 1;
-    }
-  }
-}
-
+// Never referenced, so it must not force a rename of other.v1.Phone.
 message Phone {
-  string number = 1;
+  string extension = 1;
 }

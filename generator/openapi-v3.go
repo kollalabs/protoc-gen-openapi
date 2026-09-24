@@ -80,7 +80,9 @@ type OpenAPIv3Generator struct {
 	plugin *protogen.Plugin
 
 	reflect           *OpenAPIv3Reflector
-	generatedSchemas  []string // Names of schemas that have already been generated.
+	generatedSchemas  []string                                    // Names of schemas that have already been generated.
+	messages          map[protoreflect.FullName]*protogen.Message // All messages in the request, by full name.
+	referenceable     map[protoreflect.FullName]bool              // Messages that may get a schema; their names are unique.
 	linterRulePattern *regexp.Regexp
 	pathPattern       *regexp.Regexp
 	namedPathPattern  *regexp.Regexp
@@ -126,7 +128,16 @@ func (g *OpenAPIv3Generator) buildDocumentV3() (*v3.Document, error) {
 		Description: *g.conf.Description,
 	}
 
-	g.reflect.assignSchemaNames(g.plugin.Files)
+	g.indexMessages()
+	referenceable := g.referenceableMessages()
+	g.referenceable = map[protoreflect.FullName]bool{}
+	for _, message := range referenceable {
+		g.referenceable[message.FullName()] = true
+	}
+	g.reflect.assignSchemaNames(referenceable, func(m protoreflect.MessageDescriptor) bool {
+		message, ok := g.messages[m.FullName()]
+		return ok && g.plugin.FilesByPath[message.Desc.ParentFile().Path()].Generate
+	})
 
 	d.Paths = &v3.Paths{}
 	d.Components = &v3.Components{
@@ -249,6 +260,88 @@ func pathOperations(item *v3.PathItem) []*v3.Operation {
 	return ops
 }
 
+// indexMessages indexes every message in the request by full name.
+func (g *OpenAPIv3Generator) indexMessages() {
+	g.messages = map[protoreflect.FullName]*protogen.Message{}
+	var walk func(messages []*protogen.Message)
+	walk = func(messages []*protogen.Message) {
+		for _, message := range messages {
+			g.messages[message.Desc.FullName()] = message
+			walk(message.Messages)
+		}
+	}
+	for _, file := range g.plugin.Files {
+		walk(file.Messages)
+	}
+}
+
+// referenceableMessages returns the messages a schema name can be needed for: those in generated
+// files, and those that RPCs, custom responses and the default response use, transitively.
+func (g *OpenAPIv3Generator) referenceableMessages() []protoreflect.MessageDescriptor {
+	var result []protoreflect.MessageDescriptor
+	seen := map[protoreflect.FullName]bool{}
+	var add func(message protoreflect.MessageDescriptor)
+	add = func(message protoreflect.MessageDescriptor) {
+		if message == nil || seen[message.FullName()] {
+			return
+		}
+		seen[message.FullName()] = true
+		if !message.IsMapEntry() {
+			result = append(result, message)
+		}
+		fields := message.Fields()
+		for i := 0; i < fields.Len(); i++ {
+			add(fields.Get(i).Message())
+		}
+	}
+	var addAll func(messages []*protogen.Message)
+	addAll = func(messages []*protogen.Message) {
+		for _, message := range messages {
+			add(message.Desc)
+			addAll(message.Messages)
+		}
+	}
+	addRefs := func(params *open_api_extensions.Parameters) {
+		for _, response := range params.GetCustomResponses() {
+			if message, ok := g.messages[messageRefName(response.GetMessageRef())]; ok {
+				add(message.Desc)
+			}
+		}
+	}
+
+	if *g.conf.DefaultResponse {
+		add(statusProtoDesc)
+	}
+	for _, file := range g.plugin.Files {
+		if !file.Generate {
+			continue
+		}
+		addAll(file.Messages)
+		addRefs(parametersOption(file.Desc.Options(), open_api_extensions.E_FileParams))
+		for _, service := range file.Services {
+			addRefs(parametersOption(service.Desc.Options(), open_api_extensions.E_ServiceParams))
+			for _, method := range service.Methods {
+				add(method.Input.Desc)
+				add(method.Output.Desc)
+				addRefs(parametersOption(method.Desc.Options(), open_api_extensions.E_MethodParams))
+			}
+		}
+	}
+	return result
+}
+
+// parametersOption returns the openapi Parameters option xt, or nil if it isn't set.
+func parametersOption(options proto.Message, xt protoreflect.ExtensionType) *open_api_extensions.Parameters {
+	if !proto.HasExtension(options, xt) {
+		return nil
+	}
+	return proto.GetExtension(options, xt).(*open_api_extensions.Parameters)
+}
+
+func messageRefName(ref string) protoreflect.FullName {
+	return protoreflect.FullName(strings.TrimPrefix(ref, "."))
+}
+
 // filterMethodDescription returns the part after "|" in a "Summary | description" method comment.
 func (g *OpenAPIv3Generator) filterMethodDescription(c protogen.Comments) string {
 	split := strings.SplitN(string(c), "|", 2)
@@ -302,7 +395,7 @@ func (g *OpenAPIv3Generator) buildQueryParamsV3(field *protogen.Field) []*v3.Par
 	return g._buildQueryParamsV3(field, depths)
 }
 
-// depths counts how many times each field appears on the current recursion path
+// depths counts how many times each message type appears on the current recursion path
 func (g *OpenAPIv3Generator) _buildQueryParamsV3(field *protogen.Field, depths map[string]int) []*v3.ParameterOrReference {
 	parameters := []*v3.ParameterOrReference{}
 
@@ -393,19 +486,19 @@ func (g *OpenAPIv3Generator) _buildQueryParamsV3(field *protogen.Field, depths m
 		}
 
 		// Sub messages are allowed, even circular, as long as the final type is a primitive.
-		// Go through each of the sub message fields
+		// Expand each message type at most CircularDepth times on the current path.
+		messageName := string(field.Message.Desc.FullName())
+		if depths[messageName] >= *g.conf.CircularDepth {
+			return parameters
+		}
+		depths[messageName]++
+		defer func() { depths[messageName]-- }()
+
 		for _, subField := range field.Message.Fields {
-			subFieldFullName := string(subField.Desc.FullName())
-			if depths[subFieldFullName] < *g.conf.CircularDepth {
-				// Count only the current path, so siblings sharing a type don't use up the depth.
-				depths[subFieldFullName]++
-				subParams := g._buildQueryParamsV3(subField, depths)
-				depths[subFieldFullName]--
-				for _, subParam := range subParams {
-					if param, ok := subParam.Oneof.(*v3.ParameterOrReference_Parameter); ok {
-						param.Parameter.Name = queryFieldName + "." + param.Parameter.Name
-						parameters = append(parameters, subParam)
-					}
+			for _, subParam := range g._buildQueryParamsV3(subField, depths) {
+				if param, ok := subParam.Oneof.(*v3.ParameterOrReference_Parameter); ok {
+					param.Parameter.Name = queryFieldName + "." + param.Parameter.Name
+					parameters = append(parameters, subParam)
 				}
 			}
 		}
@@ -520,8 +613,7 @@ func (g *OpenAPIv3Generator) buildOperationV3(
 				fieldSchema = g.reflect.schemaOrReferenceForField(field.Desc)
 				fieldDescription = g.filterCommentString(field.Comments.Leading, true)
 			}
-			multiSegment := starredPath == "**"
-			if schema, ok := fieldSchema.Oneof.(*v3.SchemaOrReference_Schema); ok && multiSegment {
+			if schema, ok := fieldSchema.Oneof.(*v3.SchemaOrReference_Schema); ok && starredPath == "**" {
 				schema.Schema.Pattern = ".+"
 			}
 
@@ -529,12 +621,11 @@ func (g *OpenAPIv3Generator) buildOperationV3(
 				&v3.ParameterOrReference{
 					Oneof: &v3.ParameterOrReference_Parameter{
 						Parameter: &v3.Parameter{
-							Name:          pathParameter,
-							In:            "path",
-							Description:   fieldDescription,
-							Required:      true,
-							AllowReserved: multiSegment,
-							Schema:        fieldSchema,
+							Name:        pathParameter,
+							In:          "path",
+							Description: fieldDescription,
+							Required:    true,
+							Schema:      fieldSchema,
 						},
 					},
 				})
@@ -610,8 +701,10 @@ func (g *OpenAPIv3Generator) buildOperationV3(
 		},
 	}
 
+	customResponses := g.customResponses(scopeParams)
+
 	// Add the default reponse if needed
-	if *g.conf.DefaultResponse {
+	if _, replaced := customResponses["default"]; *g.conf.DefaultResponse && !replaced {
 		anySchemaName := g.reflect.formatMessageName(anyProtoDesc)
 		anySchema := wk.NewGoogleProtobufAnySchema(anySchemaName)
 		g.addSchemaToDocumentV3(d, anySchema)
@@ -638,7 +731,7 @@ func (g *OpenAPIv3Generator) buildOperationV3(
 	}
 
 	// Kolla: custom responses.
-	if err := g.addCustomResponses(d, responses, scopeParams, operationID); err != nil {
+	if err := g.addCustomResponses(responses, customResponses, operationID); err != nil {
 		return nil, "", err
 	}
 
@@ -714,17 +807,13 @@ func (g *OpenAPIv3Generator) buildOperationV3(
 	return op, path, nil
 }
 
-// scopeParameters returns the file, service and method options that apply, least specific first.
-// Method build_tags gate the method itself, so method options always apply.
+// scopeParameters returns the file, service and method options whose build_tags match, least specific first.
 func (g *OpenAPIv3Generator) scopeParameters(fileParams, serviceParams, methodParams *open_api_extensions.Parameters) []*open_api_extensions.Parameters {
 	var scope []*open_api_extensions.Parameters
-	for _, params := range []*open_api_extensions.Parameters{fileParams, serviceParams} {
+	for _, params := range []*open_api_extensions.Parameters{fileParams, serviceParams, methodParams} {
 		if params != nil && g.matchesBuildTag(params.BuildTags) {
 			scope = append(scope, params)
 		}
-	}
-	if methodParams != nil {
-		scope = append(scope, methodParams)
 	}
 	return scope
 }
@@ -782,12 +871,17 @@ func (g *OpenAPIv3Generator) customHeaderParameters(scopeParams []*open_api_exte
 	return parameters
 }
 
-// addCustomResponses adds custom_responses, replacing any existing response with the same code.
-func (g *OpenAPIv3Generator) addCustomResponses(d *v3.Document, responses *v3.Responses, scopeParams []*open_api_extensions.Parameters, operationID string) error {
+// customResponses merges the custom_responses in scope; more specific ones win.
+func (g *OpenAPIv3Generator) customResponses(scopeParams []*open_api_extensions.Parameters) map[string]*open_api_extensions.Response {
 	custom := map[string]*open_api_extensions.Response{}
 	for _, params := range scopeParams {
 		maps.Copy(custom, params.GetCustomResponses())
 	}
+	return custom
+}
+
+// addCustomResponses adds custom responses, replacing any existing response with the same code.
+func (g *OpenAPIv3Generator) addCustomResponses(responses *v3.Responses, custom map[string]*open_api_extensions.Response, operationID string) error {
 	if len(custom) == 0 {
 		return nil
 	}
@@ -805,11 +899,11 @@ func (g *OpenAPIv3Generator) addCustomResponses(d *v3.Document, responses *v3.Re
 
 		var content *v3.MediaTypes
 		if ref := response.GetMessageRef(); ref != "" {
-			message, err := g.findCustomResponseMessage(d, ref)
-			if err != nil {
-				return fmt.Errorf("%s: custom response %q: %w", operationID, code, err)
+			message, ok := g.messages[messageRefName(ref)]
+			if !ok {
+				return fmt.Errorf("%s: custom response %q: message_ref %q does not match any message; check the name and that its file is imported", operationID, code, ref)
 			}
-			_, content = g.reflect.responseContentForMessage(message)
+			_, content = g.reflect.responseContentForMessage(message.Desc)
 		}
 
 		responses.ResponseOrReference = slices.DeleteFunc(responses.ResponseOrReference, func(r *v3.NamedResponseOrReference) bool {
@@ -835,35 +929,6 @@ func (g *OpenAPIv3Generator) addCustomResponses(d *v3.Document, responses *v3.Re
 		}
 		return strings.Compare(a.Name, b.Name)
 	})
-	return nil
-}
-
-// findCustomResponseMessage resolves a message_ref to one of the plugin's messages.
-func (g *OpenAPIv3Generator) findCustomResponseMessage(d *v3.Document, ref string) (protoreflect.MessageDescriptor, error) {
-	name := protoreflect.FullName(strings.TrimPrefix(ref, "."))
-	for _, file := range g.plugin.Files {
-		if message := findMessage(file.Messages, name); message != nil {
-			// google.rpc.Status uses a built-in schema.
-			if name == statusProtoDesc.FullName() {
-				anySchemaName := g.reflect.formatMessageName(anyProtoDesc)
-				g.addSchemaToDocumentV3(d, wk.NewGoogleProtobufAnySchema(anySchemaName))
-				g.addSchemaToDocumentV3(d, wk.NewGoogleRpcStatusSchema(g.reflect.formatMessageName(statusProtoDesc), anySchemaName))
-			}
-			return message.Desc, nil
-		}
-	}
-	return nil, fmt.Errorf("message_ref %q does not match any message; check the name and that its file is imported", ref)
-}
-
-func findMessage(messages []*protogen.Message, name protoreflect.FullName) *protogen.Message {
-	for _, message := range messages {
-		if message.Desc.FullName() == name {
-			return message
-		}
-		if nested := findMessage(message.Messages, name); nested != nil {
-			return nested
-		}
-	}
 	return nil
 }
 
@@ -949,11 +1014,7 @@ func httpBindings(rule *annotations.HttpRule, methodFullName string) []httpBindi
 
 // addPathsToDocumentV3 adds paths from a specified file descriptor.
 func (g *OpenAPIv3Generator) addPathsToDocumentV3(d *v3.Document, file *protogen.File) error {
-	var fileParams *open_api_extensions.Parameters
-	fileParamsOpts := proto.GetExtension(file.Desc.Options(), open_api_extensions.E_FileParams)
-	if fileParamsOpts != nil && fileParamsOpts != open_api_extensions.E_FileParams.InterfaceOf(open_api_extensions.E_FileParams.Zero()) {
-		fileParams = fileParamsOpts.(*open_api_extensions.Parameters)
-	}
+	fileParams := parametersOption(file.Desc.Options(), open_api_extensions.E_FileParams)
 
 	for _, service := range file.Services {
 		annotationsCount := 0
@@ -961,11 +1022,7 @@ func (g *OpenAPIv3Generator) addPathsToDocumentV3(d *v3.Document, file *protogen
 		// service whose every annotated method is one of these gets no tag, so
 		// its name and description stay out of builds that hide it entirely.
 		internalHiddenCount := 0
-		serviceHeadersOpts := proto.GetExtension(service.Desc.Options(), open_api_extensions.E_ServiceParams)
-		var params *open_api_extensions.Parameters
-		if serviceHeadersOpts != nil && serviceHeadersOpts != open_api_extensions.E_ServiceParams.InterfaceOf(open_api_extensions.E_ServiceParams.Zero()) {
-			params = serviceHeadersOpts.(*open_api_extensions.Parameters)
-		}
+		params := parametersOption(service.Desc.Options(), open_api_extensions.E_ServiceParams)
 		for _, method := range service.Methods {
 			comment := g.filterMethodDescription(method.Comments.Leading)
 			inputMessage := method.Input
@@ -975,11 +1032,7 @@ func (g *OpenAPIv3Generator) addPathsToDocumentV3(d *v3.Document, file *protogen
 
 			var bindings []httpBinding
 
-			var methodParams *open_api_extensions.Parameters
-			methodOptionsParams := proto.GetExtension(method.Desc.Options(), open_api_extensions.E_MethodParams)
-			if methodOptionsParams != nil && methodOptionsParams != open_api_extensions.E_MethodParams.InterfaceOf(open_api_extensions.E_MethodParams.Zero()) {
-				methodParams = methodOptionsParams.(*open_api_extensions.Parameters)
-			}
+			methodParams := parametersOption(method.Desc.Options(), open_api_extensions.E_MethodParams)
 
 			extHTTP := proto.GetExtension(method.Desc.Options(), annotations.E_Http)
 			if extHTTP != nil && extHTTP != annotations.E_Http.InterfaceOf(annotations.E_Http.Zero()) {
@@ -988,31 +1041,16 @@ func (g *OpenAPIv3Generator) addPathsToDocumentV3(d *v3.Document, file *protogen
 				rule := extHTTP.(*annotations.HttpRule)
 				bindings = httpBindings(rule, string(method.Desc.FullName()))
 			}
-			// If build tags exist, and a built tag is set in the protoc command, then only generate the method if the build tag is set
-			doGenerate := true
-			// If a build tag is set in the protoc command, then only generate the method if the build tag is set on the proto options
-			if *g.conf.BuildTag != "" && *g.conf.BuildTag == BuildTagPublicDocs {
+			// A public_docs build only generates methods tagged public_docs.
+			methodTags := methodParams.GetBuildTags()
+			doGenerate := *g.conf.BuildTag != BuildTagPublicDocs || slices.Contains(methodTags, *g.conf.BuildTag)
+			// An internal-docs method is opt-in for its build only. Without
+			// this an untagged build — the default for a public spec — would
+			// carry it, since untagged builds generate everything.
+			if slices.Contains(methodTags, BuildTagInternalDocs) && *g.conf.BuildTag != BuildTagInternalDocs {
 				doGenerate = false
-			}
-
-			if methodParams != nil && methodParams.BuildTags != nil && len(methodParams.BuildTags) > 0 {
-				for _, tag := range methodParams.BuildTags {
-					if tag == *g.conf.BuildTag {
-						doGenerate = true
-						break
-					}
-				}
-				// An internal-docs method is opt-in for its build only. Without
-				// this an untagged build — the default for a public spec — would
-				// carry it, since untagged builds generate everything.
-				for _, tag := range methodParams.BuildTags {
-					if tag == BuildTagInternalDocs && *g.conf.BuildTag != BuildTagInternalDocs {
-						doGenerate = false
-						if extHTTP != nil && extHTTP != annotations.E_Http.InterfaceOf(annotations.E_Http.Zero()) {
-							internalHiddenCount++
-						}
-						break
-					}
+				if extHTTP != nil && extHTTP != annotations.E_Http.InterfaceOf(annotations.E_Http.Zero()) {
+					internalHiddenCount++
 				}
 			}
 
@@ -1070,8 +1108,10 @@ func (g *OpenAPIv3Generator) addSchemasForMessagesToDocumentV3(d *v3.Document, m
 
 		schemaName := g.reflect.formatMessageName(message.Desc)
 
-		// Only generate this if we need it and haven't already generated it.
-		if !contains(g.reflect.requiredSchemas, schemaName) ||
+		// Only generate this if we need it and haven't already generated it. Unreferenceable
+		// messages are skipped, since their names may collide with a referenced one.
+		if !g.referenceable[message.Desc.FullName()] ||
+			!contains(g.reflect.requiredSchemas, schemaName) ||
 			contains(g.generatedSchemas, schemaName) {
 			continue
 		}

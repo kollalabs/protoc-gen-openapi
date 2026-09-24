@@ -19,7 +19,6 @@ import (
 	"log"
 	"strings"
 
-	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
 	wk "github.com/google/gnostic/cmd/protoc-gen-openapi/generator/wellknown"
@@ -76,42 +75,31 @@ func getNestedMessageName(message protoreflect.MessageDescriptor) string {
 	return name
 }
 
-// assignSchemaNames makes schema names unique. On a collision, a lone message from a generated file
-// keeps the default name and the others are fully qualified.
-func (r *OpenAPIv3Reflector) assignSchemaNames(files []*protogen.File) {
-	type candidate struct {
-		message  protoreflect.MessageDescriptor
-		generate bool
-	}
-	byName := map[string][]candidate{}
-	var walk func(messages []*protogen.Message, generate bool)
-	walk = func(messages []*protogen.Message, generate bool) {
-		for _, message := range messages {
-			name := r.defaultMessageName(message.Desc)
-			byName[name] = append(byName[name], candidate{message.Desc, generate})
-			walk(message.Messages, generate)
-		}
-	}
-	for _, file := range files {
-		walk(file.Messages, file.Generate)
+// assignSchemaNames makes the schema names of messages unique. On a collision, a lone generated
+// message keeps the default name and the others are fully qualified.
+func (r *OpenAPIv3Reflector) assignSchemaNames(messages []protoreflect.MessageDescriptor, generated func(protoreflect.MessageDescriptor) bool) {
+	byName := map[string][]protoreflect.MessageDescriptor{}
+	for _, message := range messages {
+		name := r.defaultMessageName(message)
+		byName[name] = append(byName[name], message)
 	}
 
 	r.schemaNames = map[protoreflect.FullName]string{}
-	for _, candidates := range byName {
-		if len(candidates) < 2 {
+	for _, group := range byName {
+		if len(group) < 2 {
 			continue
 		}
-		generated := 0
-		for _, c := range candidates {
-			if c.generate {
-				generated++
+		generatedCount := 0
+		for _, message := range group {
+			if generated(message) {
+				generatedCount++
 			}
 		}
-		for _, c := range candidates {
-			if c.generate && generated == 1 {
+		for _, message := range group {
+			if generated(message) && generatedCount == 1 {
 				continue
 			}
-			r.schemaNames[c.message.FullName()] = r.qualifiedMessageName(c.message)
+			r.schemaNames[message.FullName()] = r.qualifiedMessageName(message)
 		}
 	}
 }

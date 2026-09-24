@@ -75,6 +75,9 @@ var resourcePatternVariable = regexp.MustCompile(`{[a-z_A-Z0-9]*}`)
 
 // resourceNamePattern converts a resource pattern like "shelves/{shelf}" into an anchored regex.
 func resourceNamePattern(pattern string, idPattern string) string {
+	if strings.Contains(idPattern, "|") {
+		idPattern = "(?:" + idPattern + ")" // keep alternation inside the segment
+	}
 	var b strings.Builder
 	b.WriteString("^")
 	last := 0

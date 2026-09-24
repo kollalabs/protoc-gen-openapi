@@ -2,6 +2,7 @@ package generator
 
 import (
 	"log"
+	"slices"
 	"strconv"
 
 	"github.com/envoyproxy/protoc-gen-validate/validate"
@@ -179,9 +180,9 @@ func fieldRule(fieldRules *validate.FieldRules, field protoreflect.FieldDescript
 		if enumRules.Const != nil {
 			schema.Schema.Enum = enumNumbersToV3Any(field, func(n int32) bool { return n == enumRules.GetConst() })
 		} else if len(enumRules.In) > 0 {
-			schema.Schema.Enum = enumNumbersToV3Any(field, func(n int32) bool { return has(enumRules.In, n) })
+			schema.Schema.Enum = enumNumbersToV3Any(field, func(n int32) bool { return slices.Contains(enumRules.In, n) })
 		} else if len(enumRules.NotIn) > 0 {
-			schema.Schema.Enum = enumNumbersToV3Any(field, func(n int32) bool { return !has(enumRules.NotIn, n) })
+			schema.Schema.Enum = enumNumbersToV3Any(field, func(n int32) bool { return !slices.Contains(enumRules.NotIn, n) })
 		}
 
 	//TODO: implement protoc-gen-validate rules for the following types

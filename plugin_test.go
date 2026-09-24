@@ -48,6 +48,7 @@ var openapiTests = []struct {
 	{name: "Custom Params", path: "examples/tests/customparams/", protofile: "message.proto"},
 	{name: "Custom Params with example", path: "examples/tests/customparamsexample/", protofile: "message.proto"},
 	{name: "Custom responses", path: "examples/tests/customresponses/", protofile: "message.proto"},
+	{name: "Custom default response", path: "examples/tests/customdefaultresponse/", protofile: "message.proto"},
 	{name: "Custom Params with build tag set", path: "examples/tests/customparamsbuildtag/", protofile: "message.proto", buildTag: []string{"postman"}},
 	{name: "Custom Params with build tag set for excluding method", path: "examples/tests/customparamsexclude/", protofile: "message.proto", buildTag: []string{"public_docs"}},
 	{name: "Custom Params with build tag postman", path: "examples/tests/customparamspostmanonly/", protofile: "message.proto", buildTag: []string{"postman"}},
