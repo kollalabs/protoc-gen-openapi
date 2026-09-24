@@ -97,11 +97,17 @@ func TestOpenAPIJSONNaming(t *testing.T) {
 	for _, tt := range openapiTests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Run protoc and the protoc-gen-openapi plugin to generate an OpenAPI spec with JSON naming.
+			openAPICommand := "--openapi_out=version=1.2.3,validate=true"
+			//loop over build tags and add them to the command
+			for _, tag := range tt.buildTag {
+				openAPICommand += ",build_tag=" + tag
+			}
+			openAPICommand += ":."
 			out, err := exec.Command("protoc",
 				"-I", "./",
 				"-I", "examples",
 				path.Join(tt.path, tt.protofile),
-				"--openapi_out=version=1.2.3,validate=true:.").CombinedOutput()
+				openAPICommand).CombinedOutput()
 			if err != nil {
 				fmt.Println(string(out))
 				t.Fatalf("protoc failed: %+v", err)
