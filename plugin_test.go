@@ -46,6 +46,8 @@ var openapiTests = []struct {
 	{name: "Custom Params with build tag set for excluding method", path: "examples/tests/customparamsexclude/", protofile: "message.proto", buildTag: []string{"public_docs"}},
 	{name: "Custom Params with build tag postman", path: "examples/tests/customparamspostmanonly/", protofile: "message.proto", buildTag: []string{"postman"}},
 	{name: "Custom Params with build tag postman and public_docs", path: "examples/tests/customparamspostmanandpublic/", protofile: "message.proto", buildTag: []string{"postman", "public_docs"}},
+	{name: "Internal docs method hidden from an untagged build", path: "examples/tests/internaldocs/", protofile: "message.proto"},
+	{name: "Internal docs method shown to the internal_docs build", path: "examples/tests/internaldocsincluded/", protofile: "message.proto", buildTag: []string{"internal_docs"}},
 }
 
 func TestOpenAPIProtobufNaming(t *testing.T) {

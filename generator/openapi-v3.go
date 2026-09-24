@@ -52,8 +52,15 @@ type Configuration struct {
 }
 
 const (
-	infoURL            = "https://github.com/kollalabs/protoc-gen-openapi"
+	infoURL = "https://github.com/kollalabs/protoc-gen-openapi"
+	// BuildTagPublicDocs, given as build_tag, generates only the methods that
+	// carry it.
 	BuildTagPublicDocs = "public_docs"
+	// BuildTagInternalDocs marks a method that belongs to internal
+	// documentation only: it is generated when build_tag=internal_docs and left
+	// out of every other build, including one run with no build tag at all —
+	// which is how a service's public spec is normally produced.
+	BuildTagInternalDocs = "internal_docs"
 )
 
 // In order to dynamically add google.rpc.Status responses we need
@@ -835,6 +842,15 @@ func (g *OpenAPIv3Generator) addPathsToDocumentV3(d *v3.Document, services []*pr
 				for _, tag := range methodParams.BuildTags {
 					if tag == *g.conf.BuildTag {
 						doGenerate = true
+						break
+					}
+				}
+				// An internal-docs method is opt-in for its build only. Without
+				// this an untagged build — the default for a public spec — would
+				// carry it, since untagged builds generate everything.
+				for _, tag := range methodParams.BuildTags {
+					if tag == BuildTagInternalDocs && *g.conf.BuildTag != BuildTagInternalDocs {
+						doGenerate = false
 						break
 					}
 				}
