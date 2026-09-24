@@ -19,6 +19,11 @@ paths:
                   required: true
                   schema:
                     type: string
+                - name: FileHeader
+                  in: header
+                  description: 'Custom header: FileHeader'
+                  schema:
+                    type: string
                 - name: ServiceHeader
                   in: header
                   description: This is a service header
@@ -27,6 +32,11 @@ paths:
                     pattern: ^(.*)$
                     type: string
                   example: "{{consumer-id}}"
+                - name: MethodHeader
+                  in: header
+                  description: 'Custom header: MethodHeader'
+                  schema:
+                    type: string
             requestBody:
                 content:
                     application/json:

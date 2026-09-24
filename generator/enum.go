@@ -23,68 +23,28 @@ func enumKindSchema(field protoreflect.FieldDescriptor) *v3.SchemaOrReference {
 	return s
 }
 
-func enumsToV3Any(field protoreflect.FieldDescriptor, enumValues ...int32) []*v3.Any {
+func enumsToV3Any(field protoreflect.FieldDescriptor) []*v3.Any {
+	// skip default unspecified values
+	return enumNamesToV3Any(field, func(v protoreflect.EnumValueDescriptor) bool {
+		return !strings.HasSuffix(string(v.Name()), "_UNSPECIFIED")
+	})
+}
 
-	stringList := enumToStringSlice(field, enumValues...)
+// enumNumbersToV3Any returns the names of the enum values whose numbers pass keep
+func enumNumbersToV3Any(field protoreflect.FieldDescriptor, keep func(number int32) bool) []*v3.Any {
+	return enumNamesToV3Any(field, func(v protoreflect.EnumValueDescriptor) bool {
+		return keep(int32(v.Number()))
+	})
+}
+
+func enumNamesToV3Any(field protoreflect.FieldDescriptor, keep func(v protoreflect.EnumValueDescriptor) bool) []*v3.Any {
 	list := []*v3.Any{}
-	for _, v := range stringList {
-		n := &v3.Any{
-			Yaml: string(v),
-		}
-		list = append(list, n)
-	}
-	return list
-}
-
-func enumToStringSlice(field protoreflect.FieldDescriptor, enumValues ...int32) []string {
-	removeUnspecified := len(enumValues) == 0
-	list := []string{}
 	values := field.Enum().Values()
-	for i := 0; i < values.Len(); i++ {
-		if len(enumValues) == 0 || has(enumValues, int32(values.Get(i).Index())) {
-			v := values.Get(i)
-			// skip default unspecified values
-			if removeUnspecified && strings.HasSuffix(string(v.Name()), "_UNSPECIFIED") {
-				continue
-			}
-			list = append(list, string(v.Name()))
-		}
-	}
-
-	return list
-}
-
-// enumValues returns of list of enum ids for a given field
-func enumValues(field protoreflect.FieldDescriptor, removeUnspecified bool) []int32 {
-	values := field.Enum().Values()
-	var list []int32
 	for i := 0; i < values.Len(); i++ {
 		v := values.Get(i)
-		// skip default unspecified values
-		if removeUnspecified && strings.HasSuffix(string(v.Name()), "_UNSPECIFIED") {
-			continue
+		if keep(v) {
+			list = append(list, &v3.Any{Yaml: string(v.Name())})
 		}
-
-		list = append(list, int32(values.Get(i).Index()))
 	}
 	return list
-}
-
-func remove(list []int32, idxs ...int32) []int32 {
-	var filtered []int32
-	for _, v := range idxs {
-		if !has(list, v) {
-			filtered = append(filtered, int32(v))
-		}
-	}
-	return filtered
-}
-
-func has(list []int32, idx int32) bool {
-	for _, v := range list {
-		if v == idx {
-			return true
-		}
-	}
-	return false
 }

@@ -2,6 +2,8 @@ package generator
 
 import (
 	"log"
+	"slices"
+	"strconv"
 
 	"github.com/envoyproxy/protoc-gen-validate/validate"
 	v3 "github.com/google/gnostic/openapiv3"
@@ -59,10 +61,15 @@ func (g *OpenAPIv3Generator) addValidationRules(fieldSchema *v3.SchemaOrReferenc
 			// no item specific rules
 			return
 		}
-		schema := schema.Schema.Items.SchemaOrReference[0]
-		fieldRule(fieldRules, field, schema.Oneof.(*v3.SchemaOrReference_Schema))
-
-		log.Printf("(TODO) Unsupported field type: list.")
+		if schema.Schema.Items == nil || len(schema.Schema.Items.SchemaOrReference) == 0 {
+			return
+		}
+		// Message items are $refs, which can't carry per-field rules.
+		itemSchema, ok := schema.Schema.Items.SchemaOrReference[0].Oneof.(*v3.SchemaOrReference_Schema)
+		if !ok {
+			return
+		}
+		fieldRule(fieldRules, field, itemSchema)
 		return
 	}
 
@@ -115,27 +122,52 @@ func fieldRule(fieldRules *validate.FieldRules, field protoreflect.FieldDescript
 		}
 
 	case protoreflect.Int32Kind:
-		int32Rules := fieldRules.GetInt32()
-		if int32Rules == nil {
-			break
+		if r := fieldRules.GetInt32(); r != nil {
+			applyNumericRules(schema.Schema, r.Const, r.Lt, r.Lte, r.Gt, r.Gte)
 		}
-		if int32Rules.GetGte() > 0 {
-			schema.Schema.Minimum = float64(int32Rules.GetGte())
-		}
-		if int32Rules.GetLte() > 0 {
-			schema.Schema.Maximum = float64(int32Rules.GetLte())
-		}
-
 	case protoreflect.Int64Kind:
-		int64Rules := fieldRules.GetInt64()
-		if int64Rules == nil {
-			break
+		if r := fieldRules.GetInt64(); r != nil {
+			applyNumericRules(schema.Schema, r.Const, r.Lt, r.Lte, r.Gt, r.Gte)
 		}
-		if int64Rules.GetGte() > 0 {
-			schema.Schema.Minimum = float64(int64Rules.GetGte())
+	case protoreflect.Sint32Kind:
+		if r := fieldRules.GetSint32(); r != nil {
+			applyNumericRules(schema.Schema, r.Const, r.Lt, r.Lte, r.Gt, r.Gte)
 		}
-		if int64Rules.GetLte() > 0 {
-			schema.Schema.Maximum = float64(int64Rules.GetLte())
+	case protoreflect.Sint64Kind:
+		if r := fieldRules.GetSint64(); r != nil {
+			applyNumericRules(schema.Schema, r.Const, r.Lt, r.Lte, r.Gt, r.Gte)
+		}
+	case protoreflect.Sfixed32Kind:
+		if r := fieldRules.GetSfixed32(); r != nil {
+			applyNumericRules(schema.Schema, r.Const, r.Lt, r.Lte, r.Gt, r.Gte)
+		}
+	case protoreflect.Sfixed64Kind:
+		if r := fieldRules.GetSfixed64(); r != nil {
+			applyNumericRules(schema.Schema, r.Const, r.Lt, r.Lte, r.Gt, r.Gte)
+		}
+	case protoreflect.Uint32Kind:
+		if r := fieldRules.GetUint32(); r != nil {
+			applyNumericRules(schema.Schema, r.Const, r.Lt, r.Lte, r.Gt, r.Gte)
+		}
+	case protoreflect.Uint64Kind:
+		if r := fieldRules.GetUint64(); r != nil {
+			applyNumericRules(schema.Schema, r.Const, r.Lt, r.Lte, r.Gt, r.Gte)
+		}
+	case protoreflect.Fixed32Kind:
+		if r := fieldRules.GetFixed32(); r != nil {
+			applyNumericRules(schema.Schema, r.Const, r.Lt, r.Lte, r.Gt, r.Gte)
+		}
+	case protoreflect.Fixed64Kind:
+		if r := fieldRules.GetFixed64(); r != nil {
+			applyNumericRules(schema.Schema, r.Const, r.Lt, r.Lte, r.Gt, r.Gte)
+		}
+	case protoreflect.FloatKind:
+		if r := fieldRules.GetFloat(); r != nil {
+			applyNumericRules(schema.Schema, r.Const, r.Lt, r.Lte, r.Gt, r.Gte)
+		}
+	case protoreflect.DoubleKind:
+		if r := fieldRules.GetDouble(); r != nil {
+			applyNumericRules(schema.Schema, r.Const, r.Lt, r.Lte, r.Gt, r.Gte)
 		}
 	case protoreflect.EnumKind:
 		enumRules := fieldRules.GetEnum()
@@ -143,31 +175,96 @@ func fieldRule(fieldRules *validate.FieldRules, field protoreflect.FieldDescript
 			break
 		}
 
-		var validEnums []int32
-		if enumRules.Const != nil {
-			validEnums = enumValues(field, true)
-		} else if enumRules.In != nil {
-			validEnums = enumRules.In
-		} else if enumRules.NotIn != nil {
-			validEnums = remove(enumValues(field, false), enumRules.NotIn...)
-		}
+		// Rules reference enum numbers, not descriptor indexes.
 		// we don't check enumRules.DefinedOnly because we already list the set of valid enums
-		list := enumsToV3Any(field, validEnums...)
-		schema.Schema.Enum = list
+		if enumRules.Const != nil {
+			schema.Schema.Enum = enumNumbersToV3Any(field, func(n int32) bool { return n == enumRules.GetConst() })
+		} else if len(enumRules.In) > 0 {
+			schema.Schema.Enum = enumNumbersToV3Any(field, func(n int32) bool { return slices.Contains(enumRules.In, n) })
+		} else if len(enumRules.NotIn) > 0 {
+			schema.Schema.Enum = enumNumbersToV3Any(field, func(n int32) bool { return !slices.Contains(enumRules.NotIn, n) })
+		}
 
 	//TODO: implement protoc-gen-validate rules for the following types
-	case protoreflect.Sint32Kind, protoreflect.Uint32Kind,
-		protoreflect.Sint64Kind, protoreflect.Uint64Kind,
-		protoreflect.Sfixed32Kind, protoreflect.Fixed32Kind, protoreflect.Sfixed64Kind,
-		protoreflect.Fixed64Kind:
-
 	case protoreflect.BoolKind:
-
-	case protoreflect.FloatKind, protoreflect.DoubleKind:
 
 	case protoreflect.BytesKind:
 
 	default:
 		log.Printf("(TODO) Unsupported field type: %+v", fullMessageTypeName(field.Message()))
 	}
+}
+
+type number interface {
+	~int32 | ~int64 | ~uint32 | ~uint64 | ~float32 | ~float64
+}
+
+// applyNumericRules maps const, lt, lte, gt and gte rules onto the schema.
+func applyNumericRules[T number](schema *v3.Schema, konst, lt, lte, gt, gte *T) {
+	if konst != nil {
+		setMinimum(schema, toFloat64(*konst), false)
+		setMaximum(schema, toFloat64(*konst), false)
+		return
+	}
+
+	var lower, upper *float64
+	lowerExclusive, upperExclusive := false, false
+	if gt != nil {
+		v := toFloat64(*gt)
+		lower, lowerExclusive = &v, true
+	} else if gte != nil {
+		v := toFloat64(*gte)
+		lower = &v
+	}
+	if lt != nil {
+		v := toFloat64(*lt)
+		upper, upperExclusive = &v, true
+	} else if lte != nil {
+		v := toFloat64(*lte)
+		upper = &v
+	}
+
+	// upper < lower means "outside the range", which minimum/maximum can't express.
+	if lower != nil && upper != nil && *upper < *lower {
+		return
+	}
+	if lower != nil {
+		setMinimum(schema, *lower, lowerExclusive)
+	}
+	if upper != nil {
+		setMaximum(schema, *upper, upperExclusive)
+	}
+}
+
+// toFloat64 keeps float32 precision, so 0.1 stays 0.1.
+func toFloat64[T number](v T) float64 {
+	if f, ok := any(v).(float32); ok {
+		parsed, _ := strconv.ParseFloat(strconv.FormatFloat(float64(f), 'g', -1, 32), 64)
+		return parsed
+	}
+	return float64(v)
+}
+
+func setMinimum(schema *v3.Schema, v float64, exclusive bool) {
+	schema.Minimum = v
+	schema.ExclusiveMinimum = exclusive
+	if v == 0 {
+		setZeroBound(schema, "minimum")
+	}
+}
+
+func setMaximum(schema *v3.Schema, v float64, exclusive bool) {
+	schema.Maximum = v
+	schema.ExclusiveMaximum = exclusive
+	if v == 0 {
+		setZeroBound(schema, "maximum")
+	}
+}
+
+// setZeroBound emits a 0 bound via an extension, since gnostic omits zero Minimum/Maximum.
+func setZeroBound(schema *v3.Schema, key string) {
+	schema.SpecificationExtension = append(schema.SpecificationExtension, &v3.NamedAny{
+		Name:  key,
+		Value: &v3.Any{Yaml: "0"},
+	})
 }

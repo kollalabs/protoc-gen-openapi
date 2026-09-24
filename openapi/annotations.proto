@@ -25,6 +25,15 @@ extend google.protobuf.FileOptions {
 message Parameters {
     repeated Header headers = 1;
     repeated string build_tags = 2;
+    // Keyed by status code ("403", "4XX" or "default"); replaces a generated response with the same key.
+    map<string, Response> custom_responses = 3;
+}
+
+message Response {
+    // Defaults to the status text, e.g. "Forbidden".
+    optional string description = 1;
+    // Full name of the body message, e.g. "my.pkg.v1.ErrorResponse"; omit for no body.
+    optional string message_ref = 2;
 }
 
 message Header {

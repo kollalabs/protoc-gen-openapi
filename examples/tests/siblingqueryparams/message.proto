@@ -1,0 +1,61 @@
+// Copyright 2021 Google LLC.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+syntax = "proto3";
+
+package tests.siblingqueryparams.message.v1;
+
+import "google/api/annotations.proto";
+
+option go_package = "github.com/google/gnostic/apps/protoc-gen-openapi/examples/tests/siblingqueryparams/message/v1;message";
+
+service Search {
+  rpc SearchPlaces(SearchPlacesRequest) returns (SearchPlacesResponse) {
+    option (google.api.http) = {
+      get : "/v1/places"
+    };
+  }
+}
+
+// Every sibling of the same type must expand to query params,
+// regardless of the circular depth limit.
+message SearchPlacesRequest {
+  Filter filter = 1;
+  Expression expression = 2;
+}
+
+message Filter {
+  Address home = 1;
+  Address work = 2;
+  Address billing = 3;
+}
+
+message Address {
+  string city = 1;
+}
+
+message SearchPlacesResponse {
+  repeated string names = 1;
+}
+
+// Many self-references must not expand exponentially.
+message Expression {
+  Expression a = 1;
+  Expression b = 2;
+  Expression c = 3;
+  Expression d = 4;
+  Expression e = 5;
+  Expression f = 6;
+  string value = 7;
+}

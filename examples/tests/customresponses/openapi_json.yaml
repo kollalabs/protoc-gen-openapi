@@ -3,52 +3,23 @@
 
 openapi: 3.0.3
 info:
-    title: Messaging API
+    title: ""
     version: 1.2.3
 paths:
-    /v1/message_ids/{messageId}:
-        get:
-            tags:
-                - Messaging
-            summary: GetMessageById
-            description: Literal segment contains the field name; only the placeholder may be renamed.
-            operationId: Messaging_GetMessageById
-            parameters:
-                - name: messageId
-                  in: path
-                  required: true
-                  schema:
-                    type: string
-                - name: userId
-                  in: query
-                  schema:
-                    type: string
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Message'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
     /v1/messages/{messageId}:
-        get:
+        delete:
             tags:
                 - Messaging
-            summary: GetMessage
-            operationId: Messaging_GetMessage
+            summary: DeleteMessage
+            description: The method's 403 replaces the service's.
+            operationId: Messaging_DeleteMessage
             parameters:
                 - name: messageId
                   in: path
                   required: true
                   schema:
                     type: string
-                - name: userId
+                - name: text
                   in: query
                   schema:
                     type: string
@@ -59,17 +30,65 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/Message'
-                default:
-                    description: Default error response
+                "401":
+                    description: Unauthorized
+                "403":
+                    description: Only the author can delete a message
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/Status'
+                                $ref: '#/components/schemas/ErrorResponse'
+                default:
+                    description: Rest of the errors
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorResponse'
+        patch:
+            tags:
+                - Messaging
+            summary: UpdateMessage
+            operationId: Messaging_UpdateMessage
+            parameters:
+                - name: messageId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            type: string
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Message'
+                "401":
+                    description: Unauthorized
+                "403":
+                    description: Forbidden
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorResponse'
+                default:
+                    description: Rest of the errors
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorResponse'
+    /v1/messages/{messageId}:archive:
         post:
             tags:
                 - Messaging
-            summary: CreateMessage
-            operationId: Messaging_CreateMessage
+            summary: ArchiveMessage
+            description: Tagged method params are left out unless the build tag matches.
+            operationId: Messaging_ArchiveMessage
             parameters:
                 - name: messageId
                   in: path
@@ -89,31 +108,32 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/Message'
-                default:
-                    description: Default error response
+                "401":
+                    description: Unauthorized
+                "403":
+                    description: Forbidden
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/Status'
-    /v1/users/{userId}/files/{messageId}:
-        get:
+                                $ref: '#/components/schemas/ErrorResponse'
+                default:
+                    description: Rest of the errors
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ErrorResponse'
+    /v1/messages:purge:
+        post:
             tags:
-                - Messaging
-            summary: GetMessageByPath
-            description: 'Multi-segment wildcard (issue #69): a single parameter whose value may contain slashes.'
-            operationId: Messaging_GetMessageByPath
-            parameters:
-                - name: userId
-                  in: path
-                  required: true
-                  schema:
-                    type: string
-                - name: messageId
-                  in: path
-                  required: true
-                  schema:
-                    pattern: .+
-                    type: string
+                - Admin
+            summary: PurgeMessages
+            operationId: Admin_PurgeMessages
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Message'
+                required: true
             responses:
                 "200":
                     description: OK
@@ -121,101 +141,8 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/Message'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
-    /v1/users/{userId}/messages/{messageId}:
-        get:
-            tags:
-                - Messaging
-            summary: GetUserMessage
-            operationId: Messaging_GetUserMessage
-            parameters:
-                - name: userId
-                  in: path
-                  required: true
-                  schema:
-                    type: string
-                - name: messageId
-                  in: path
-                  required: true
-                  schema:
-                    type: string
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Message'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
-    /v1/users/{userId}/threads/{thread}:
-        get:
-            tags:
-                - Messaging
-            summary: GetThreadMessage
-            description: Simple and named path parameters mixed in one template.
-            operationId: Messaging_GetThreadMessage
-            parameters:
-                - name: userId
-                  in: path
-                  required: true
-                  schema:
-                    type: string
-                - name: thread
-                  in: path
-                  description: The thread id.
-                  required: true
-                  schema:
-                    type: string
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Message'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
-    /v2/users/{user}/messages/{message}:
-        get:
-            tags:
-                - Messaging
-            summary: GetNamedMessage
-            description: Multiple named path parameters in one template.
-            operationId: Messaging_GetNamedMessage
-            parameters:
-                - name: user
-                  in: path
-                  description: The user id.
-                  required: true
-                  schema:
-                    type: string
-                - name: message
-                  in: path
-                  description: The message id.
-                  required: true
-                  schema:
-                    type: string
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Message'
+                "401":
+                    description: Unauthorized
                 default:
                     description: Default error response
                     content:
@@ -224,6 +151,11 @@ paths:
                                 $ref: '#/components/schemas/Status'
 components:
     schemas:
+        ErrorResponse:
+            type: object
+            properties:
+                error:
+                    type: string
         GoogleProtobufAny:
             type: object
             properties:
@@ -237,9 +169,7 @@ components:
             properties:
                 messageId:
                     type: string
-                userId:
-                    type: string
-                content:
+                text:
                     type: string
         Status:
             type: object
@@ -258,4 +188,6 @@ components:
                     description: A list of messages that carry the error details.  There is a common set of message types for APIs to use.
             description: 'The `Status` type defines a logical error model that is suitable for different programming environments, including REST APIs and RPC APIs. It is used by [gRPC](https://github.com/grpc). Each `Status` message contains three pieces of data: error code, error message, and error details. You can find out more about this error model and how to work with it in the [API Design Guide](https://cloud.google.com/apis/design/errors).'
 tags:
+    - name: Admin
+      description: Responses gated by build_tags are left out unless the build tag matches.
     - name: Messaging

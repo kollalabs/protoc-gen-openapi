@@ -71,4 +71,35 @@ message Message {
     ApprovalState approval_state = 5 [
       (validate.rules).enum = {in: [ 0, 2, 3 ]}
     ];
+
+    // enum with numbers that differ from their declaration index
+    enum Priority {
+      PRIORITY_UNSPECIFIED = 0;
+      LOW = 10;
+      HIGH = 20;
+      URGENT = 30;
+    }
+
+    Priority in_priority = 6 [(validate.rules).enum = {in: [ 10, 30 ]}];
+    Priority not_in_priority = 7 [(validate.rules).enum = {not_in: [ 0, 20 ]}];
+    Priority const_priority = 8 [(validate.rules).enum = {const: 20}];
+
+    sint32 offset = 10 [(validate.rules).sint32 = {gt: -5, lt: 5}];
+    uint32 percent = 11 [(validate.rules).uint32 = {gte: 0, lte: 100}];
+    double ratio = 12 [(validate.rules).double = {gt: 0, lte: 1.5}];
+    float step = 13 [(validate.rules).float = {const: 0.1}];
+    int32 negative = 14 [(validate.rules).int32 = {gte: -10, lte: -1}];
+    // outside the range (below 5 or above 10), which minimum/maximum can't express
+    int32 outside = 15 [(validate.rules).int32 = {gt: 10, lt: 5}];
+
+    repeated Attachment attachments = 9 [
+      (validate.rules).repeated = {
+        min_items: 1,
+        items: {message: {required: true}}
+      }
+    ];
+}
+
+message Attachment {
+    string url = 1;
 }

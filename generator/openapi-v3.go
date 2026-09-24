@@ -18,9 +18,13 @@ package generator
 import (
 	"fmt"
 	"log"
+	"maps"
+	"net/http"
 	"net/url"
 	"regexp"
+	"slices"
 	"sort"
+	"strconv"
 	"strings"
 
 	"google.golang.org/genproto/googleapis/api/annotations"
@@ -39,16 +43,17 @@ import (
 )
 
 type Configuration struct {
-	Version         *string
-	Title           *string
-	Description     *string
-	Naming          *string
-	FQSchemaNaming  *bool
-	EnumType        *string
-	CircularDepth   *int
-	DefaultResponse *bool
-	Validate        *bool
-	BuildTag        *string // Kolla
+	Version           *string
+	Title             *string
+	Description       *string
+	Naming            *string
+	FQSchemaNaming    *bool
+	EnumType          *string
+	CircularDepth     *int
+	DefaultResponse   *bool
+	Validate          *bool
+	BuildTag          *string // Kolla
+	ResourceIDPattern *string // Kolla
 }
 
 const (
@@ -75,7 +80,9 @@ type OpenAPIv3Generator struct {
 	plugin *protogen.Plugin
 
 	reflect           *OpenAPIv3Reflector
-	generatedSchemas  []string // Names of schemas that have already been generated.
+	generatedSchemas  []string                                    // Names of schemas that have already been generated.
+	messages          map[protoreflect.FullName]*protogen.Message // All messages in the request, by full name.
+	referenceable     map[protoreflect.FullName]bool              // Messages that may get a schema; their names are unique.
 	linterRulePattern *regexp.Regexp
 	pathPattern       *regexp.Regexp
 	namedPathPattern  *regexp.Regexp
@@ -91,13 +98,16 @@ func NewOpenAPIv3Generator(plugin *protogen.Plugin, conf Configuration) *OpenAPI
 		generatedSchemas:  make([]string, 0),
 		linterRulePattern: regexp.MustCompile(`\(-- (?s:.)* --\)`), // Kolla
 		pathPattern:       regexp.MustCompile("{([^=}]+)}"),
-		namedPathPattern:  regexp.MustCompile("{(.+)=(.+)}"),
+		namedPathPattern:  regexp.MustCompile("{([^{}=]+)=([^{}]+)}"),
 	}
 }
 
 // Run runs the generator.
 func (g *OpenAPIv3Generator) Run() error {
-	d := g.buildDocumentV3()
+	d, err := g.buildDocumentV3()
+	if err != nil {
+		return err
+	}
 	bytes, err := d.YAMLValue("Generated with protoc-gen-openapi\n" + infoURL)
 	if err != nil {
 		return fmt.Errorf("failed to marshal yaml: %s", err.Error())
@@ -108,7 +118,7 @@ func (g *OpenAPIv3Generator) Run() error {
 }
 
 // buildDocumentV3 builds an OpenAPIv3 document for a plugin request.
-func (g *OpenAPIv3Generator) buildDocumentV3() *v3.Document {
+func (g *OpenAPIv3Generator) buildDocumentV3() (*v3.Document, error) {
 	d := &v3.Document{}
 
 	d.Openapi = "3.0.3"
@@ -117,6 +127,17 @@ func (g *OpenAPIv3Generator) buildDocumentV3() *v3.Document {
 		Title:       *g.conf.Title,
 		Description: *g.conf.Description,
 	}
+
+	g.indexMessages()
+	referenceable := g.referenceableMessages()
+	g.referenceable = map[protoreflect.FullName]bool{}
+	for _, message := range referenceable {
+		g.referenceable[message.FullName()] = true
+	}
+	g.reflect.assignSchemaNames(referenceable, func(m protoreflect.MessageDescriptor) bool {
+		message, ok := g.messages[m.FullName()]
+		return ok && g.plugin.FilesByPath[message.Desc.ParentFile().Path()].Generate
+	})
 
 	d.Paths = &v3.Paths{}
 	d.Components = &v3.Components{
@@ -136,7 +157,9 @@ func (g *OpenAPIv3Generator) buildDocumentV3() *v3.Document {
 				proto.Merge(d, extDocument.(*v3.Document))
 			}
 
-			g.addPathsToDocumentV3(d, file.Services)
+			if err := g.addPathsToDocumentV3(d, file); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -169,44 +192,17 @@ func (g *OpenAPIv3Generator) buildDocumentV3() *v3.Document {
 		servers := []string{}
 		// Only 1 server will ever be set, per method, by the generator
 
-		if path.Value.Get != nil && len(path.Value.Get.Servers) == 1 {
-			servers = appendUnique(servers, path.Value.Get.Servers[0].Url)
-			allServers = appendUnique(servers, path.Value.Get.Servers[0].Url)
-		}
-		if path.Value.Post != nil && len(path.Value.Post.Servers) == 1 {
-			servers = appendUnique(servers, path.Value.Post.Servers[0].Url)
-			allServers = appendUnique(servers, path.Value.Post.Servers[0].Url)
-		}
-		if path.Value.Put != nil && len(path.Value.Put.Servers) == 1 {
-			servers = appendUnique(servers, path.Value.Put.Servers[0].Url)
-			allServers = appendUnique(servers, path.Value.Put.Servers[0].Url)
-		}
-		if path.Value.Delete != nil && len(path.Value.Delete.Servers) == 1 {
-			servers = appendUnique(servers, path.Value.Delete.Servers[0].Url)
-			allServers = appendUnique(servers, path.Value.Delete.Servers[0].Url)
-		}
-		if path.Value.Patch != nil && len(path.Value.Patch.Servers) == 1 {
-			servers = appendUnique(servers, path.Value.Patch.Servers[0].Url)
-			allServers = appendUnique(servers, path.Value.Patch.Servers[0].Url)
+		for _, op := range pathOperations(path.Value) {
+			if len(op.Servers) == 1 {
+				servers = appendUnique(servers, op.Servers[0].Url)
+				allServers = appendUnique(allServers, op.Servers[0].Url)
+			}
 		}
 
 		if len(servers) == 1 {
 			path.Value.Servers = []*v3.Server{{Url: servers[0]}}
-
-			if path.Value.Get != nil {
-				path.Value.Get.Servers = nil
-			}
-			if path.Value.Post != nil {
-				path.Value.Post.Servers = nil
-			}
-			if path.Value.Put != nil {
-				path.Value.Put.Servers = nil
-			}
-			if path.Value.Delete != nil {
-				path.Value.Delete.Servers = nil
-			}
-			if path.Value.Patch != nil {
-				path.Value.Patch.Servers = nil
+			for _, op := range pathOperations(path.Value) {
+				op.Servers = nil
 			}
 		}
 	}
@@ -250,16 +246,114 @@ func (g *OpenAPIv3Generator) buildDocumentV3() *v3.Document {
 		})
 		d.Components.Schemas.AdditionalProperties = pairs
 	}
-	return d
+	return d, nil
+}
+
+// pathOperations returns the operations set on a path item.
+func pathOperations(item *v3.PathItem) []*v3.Operation {
+	var ops []*v3.Operation
+	for _, op := range []*v3.Operation{item.Get, item.Put, item.Post, item.Delete, item.Options, item.Head, item.Patch, item.Trace} {
+		if op != nil {
+			ops = append(ops, op)
+		}
+	}
+	return ops
+}
+
+// indexMessages indexes every message in the request by full name.
+func (g *OpenAPIv3Generator) indexMessages() {
+	g.messages = map[protoreflect.FullName]*protogen.Message{}
+	var walk func(messages []*protogen.Message)
+	walk = func(messages []*protogen.Message) {
+		for _, message := range messages {
+			g.messages[message.Desc.FullName()] = message
+			walk(message.Messages)
+		}
+	}
+	for _, file := range g.plugin.Files {
+		walk(file.Messages)
+	}
+}
+
+// referenceableMessages returns the messages a schema name can be needed for: those in generated
+// files, and those that RPCs, custom responses and the default response use, transitively.
+func (g *OpenAPIv3Generator) referenceableMessages() []protoreflect.MessageDescriptor {
+	var result []protoreflect.MessageDescriptor
+	seen := map[protoreflect.FullName]bool{}
+	var add func(message protoreflect.MessageDescriptor)
+	add = func(message protoreflect.MessageDescriptor) {
+		if message == nil || seen[message.FullName()] {
+			return
+		}
+		seen[message.FullName()] = true
+		if !message.IsMapEntry() {
+			result = append(result, message)
+		}
+		fields := message.Fields()
+		for i := 0; i < fields.Len(); i++ {
+			add(fields.Get(i).Message())
+		}
+	}
+	var addAll func(messages []*protogen.Message)
+	addAll = func(messages []*protogen.Message) {
+		for _, message := range messages {
+			add(message.Desc)
+			addAll(message.Messages)
+		}
+	}
+	addRefs := func(params *open_api_extensions.Parameters) {
+		for _, response := range params.GetCustomResponses() {
+			if message, ok := g.messages[messageRefName(response.GetMessageRef())]; ok {
+				add(message.Desc)
+			}
+		}
+	}
+
+	if *g.conf.DefaultResponse {
+		add(statusProtoDesc)
+	}
+	for _, file := range g.plugin.Files {
+		if !file.Generate {
+			continue
+		}
+		addAll(file.Messages)
+		addRefs(parametersOption(file.Desc.Options(), open_api_extensions.E_FileParams))
+		for _, service := range file.Services {
+			addRefs(parametersOption(service.Desc.Options(), open_api_extensions.E_ServiceParams))
+			for _, method := range service.Methods {
+				add(method.Input.Desc)
+				add(method.Output.Desc)
+				addRefs(parametersOption(method.Desc.Options(), open_api_extensions.E_MethodParams))
+			}
+		}
+	}
+	return result
+}
+
+// parametersOption returns the openapi Parameters option xt, or nil if it isn't set.
+func parametersOption(options proto.Message, xt protoreflect.ExtensionType) *open_api_extensions.Parameters {
+	if !proto.HasExtension(options, xt) {
+		return nil
+	}
+	return proto.GetExtension(options, xt).(*open_api_extensions.Parameters)
+}
+
+func messageRefName(ref string) protoreflect.FullName {
+	return protoreflect.FullName(strings.TrimPrefix(ref, "."))
+}
+
+// filterMethodDescription returns the part after "|" in a "Summary | description" method comment.
+func (g *OpenAPIv3Generator) filterMethodDescription(c protogen.Comments) string {
+	split := strings.SplitN(string(c), "|", 2)
+	if len(split) >= 2 {
+		c = protogen.Comments(split[1])
+	}
+	return g.filterCommentString(c, false)
 }
 
 // filterCommentString removes line breaks and linter rules from comments.
 func (g *OpenAPIv3Generator) filterCommentString(c protogen.Comments, removeNewLines bool) string {
 	comment := string(c)
-	split := strings.SplitN(comment, "|", 2)
-	if len(split) >= 2 {
-		comment = split[1]
-	}
 	if removeNewLines {
 		comment = strings.Replace(comment, "\n", "", -1)
 	}
@@ -301,7 +395,7 @@ func (g *OpenAPIv3Generator) buildQueryParamsV3(field *protogen.Field) []*v3.Par
 	return g._buildQueryParamsV3(field, depths)
 }
 
-// depths are used to keep track of how many times a message's fields has been seen
+// depths counts how many times each message type appears on the current recursion path
 func (g *OpenAPIv3Generator) _buildQueryParamsV3(field *protogen.Field, depths map[string]int) []*v3.ParameterOrReference {
 	parameters := []*v3.ParameterOrReference{}
 
@@ -392,22 +486,19 @@ func (g *OpenAPIv3Generator) _buildQueryParamsV3(field *protogen.Field, depths m
 		}
 
 		// Sub messages are allowed, even circular, as long as the final type is a primitive.
-		// Go through each of the sub message fields
-		for _, subField := range field.Message.Fields {
-			subFieldFullName := string(subField.Desc.FullName())
-			seen, ok := depths[subFieldFullName]
-			if !ok {
-				depths[subFieldFullName] = 0
-			}
+		// Expand each message type at most CircularDepth times on the current path.
+		messageName := string(field.Message.Desc.FullName())
+		if depths[messageName] >= *g.conf.CircularDepth {
+			return parameters
+		}
+		depths[messageName]++
+		defer func() { depths[messageName]-- }()
 
-			if seen < *g.conf.CircularDepth {
-				depths[subFieldFullName]++
-				subParams := g._buildQueryParamsV3(subField, depths)
-				for _, subParam := range subParams {
-					if param, ok := subParam.Oneof.(*v3.ParameterOrReference_Parameter); ok {
-						param.Parameter.Name = queryFieldName + "." + param.Parameter.Name
-						parameters = append(parameters, subParam)
-					}
+		for _, subField := range field.Message.Fields {
+			for _, subParam := range g._buildQueryParamsV3(subField, depths) {
+				if param, ok := subParam.Oneof.(*v3.ParameterOrReference_Parameter); ok {
+					param.Parameter.Name = queryFieldName + "." + param.Parameter.Name
+					parameters = append(parameters, subParam)
 				}
 			}
 		}
@@ -448,8 +539,8 @@ func (g *OpenAPIv3Generator) buildOperationV3(
 	bodyField string,
 	inputMessage *protogen.Message,
 	outputMessage *protogen.Message,
-	customParams *open_api_extensions.Parameters, // Kolla
-) (*v3.Operation, string) {
+	scopeParams []*open_api_extensions.Parameters, // Kolla
+) (*v3.Operation, string, error) {
 	// coveredParameters tracks the parameters that have been used in the body or path.
 	coveredParameters := make([]string, 0)
 	if bodyField != "" {
@@ -464,7 +555,8 @@ func (g *OpenAPIv3Generator) buildOperationV3(
 			// Add the value to the list of covered parameters.
 			coveredParameters = append(coveredParameters, matches[1])
 			pathParameter := g.findAndFormatFieldName(matches[1], inputMessage)
-			path = strings.Replace(path, matches[1], pathParameter, 1)
+			// Replace the whole placeholder so literal segments are untouched.
+			path = strings.Replace(path, matches[0], "{"+pathParameter+"}", 1)
 
 			// Add the path parameters to the operation parameters.
 			var fieldSchema *v3.SchemaOrReference
@@ -501,7 +593,7 @@ func (g *OpenAPIv3Generator) buildOperationV3(
 	}
 
 	// Find named path parameters like {name=shelves/*}
-	if matches := g.namedPathPattern.FindStringSubmatch(path); matches != nil {
+	for _, matches := range g.namedPathPattern.FindAllStringSubmatch(path, -1) {
 		// Build a list of named path parameters.
 		namedPathParameters := make([]string, 0)
 
@@ -509,6 +601,37 @@ func (g *OpenAPIv3Generator) buildOperationV3(
 		coveredParameters = append(coveredParameters, matches[1])
 		// Convert the path from the starred form to use named path parameters.
 		starredPath := matches[2]
+
+		// A bare wildcard ({path=*} or {path=**}) is a single parameter; "**" may contain slashes.
+		if starredPath == "*" || starredPath == "**" {
+			pathParameter := g.findAndFormatFieldName(matches[1], inputMessage)
+			path = strings.Replace(path, matches[0], "{"+pathParameter+"}", 1)
+
+			fieldSchema := wk.NewStringSchema()
+			var fieldDescription string
+			if field := g.findField(matches[1], inputMessage); field != nil {
+				fieldSchema = g.reflect.schemaOrReferenceForField(field.Desc)
+				fieldDescription = g.filterCommentString(field.Comments.Leading, true)
+			}
+			if schema, ok := fieldSchema.Oneof.(*v3.SchemaOrReference_Schema); ok && starredPath == "**" {
+				schema.Schema.Pattern = ".+"
+			}
+
+			parameters = append(parameters,
+				&v3.ParameterOrReference{
+					Oneof: &v3.ParameterOrReference_Parameter{
+						Parameter: &v3.Parameter{
+							Name:        pathParameter,
+							In:          "path",
+							Description: fieldDescription,
+							Required:    true,
+							Schema:      fieldSchema,
+						},
+					},
+				})
+			continue
+		}
+
 		parts := strings.Split(starredPath, "/")
 		// The starred path is assumed to be in the form "things/*/otherthings/*".
 		// We want to convert it to "things/{thingsId}/otherthings/{otherthingsId}".
@@ -546,79 +669,8 @@ func (g *OpenAPIv3Generator) buildOperationV3(
 		}
 	}
 
-	// If there are any customParams, then iterate over them and add them to the parameter list
-	// First check if there are is a build tag set and don't run this if it is not set
-	if customParams != nil {
-		doGenerate := true
-		if customParams.BuildTags != nil && len(customParams.BuildTags) > 0 {
-			doGenerate = false
-			for _, tag := range customParams.BuildTags {
-				if tag == *g.conf.BuildTag {
-					doGenerate = true
-					break
-				}
-			}
-		}
-		if doGenerate {
-			for _, header := range customParams.Headers {
-				name := ""
-				pattern := ""
-				headerDescription := ""
-				required := false
-				example := &v3.Any{}
-
-				if header.Name != nil {
-					name = *header.Name
-				}
-				if header.Pattern != nil {
-					pattern = *header.Pattern
-				}
-				if header.Description != nil {
-					headerDescription = *header.Description
-				} else {
-					headerDescription = "Custom header: " + name
-				}
-
-				if header.Required != nil {
-					required = *header.Required
-				}
-
-				parameter := &v3.ParameterOrReference{
-					Oneof: &v3.ParameterOrReference_Parameter{
-						Parameter: &v3.Parameter{
-							Name:        name,
-							In:          "header",
-							Description: headerDescription,
-							Required:    required,
-							Schema: &v3.SchemaOrReference{
-								Oneof: &v3.SchemaOrReference_Schema{
-									Schema: &v3.Schema{
-										Type:    "string",
-										Pattern: pattern,
-									},
-								},
-							},
-						},
-					},
-				}
-
-				if header.Example != nil && *header.Example != "" {
-					bytesValue := &wrappers.BytesValue{Value: []byte(*header.Example)}
-					exampleValue := &anypb.Any{}
-					err := anypb.MarshalFrom(exampleValue, bytesValue, proto.MarshalOptions{})
-					if err != nil {
-						fmt.Println("Error marshalling example value: ", err)
-					} else {
-						example.Value = exampleValue
-						example.Yaml = *header.Example
-						parameter.Oneof.(*v3.ParameterOrReference_Parameter).Parameter.Example = example
-					}
-				}
-
-				parameters = append(parameters, parameter)
-			}
-		}
-	}
+	// Kolla: custom headers.
+	parameters = append(parameters, g.customHeaderParameters(scopeParams)...)
 
 	// Add any unhandled fields in the request message as query parameters.
 	if bodyField != "*" && string(inputMessage.Desc.FullName()) != "google.api.HttpBody" {
@@ -649,8 +701,10 @@ func (g *OpenAPIv3Generator) buildOperationV3(
 		},
 	}
 
+	customResponses := g.customResponses(scopeParams)
+
 	// Add the default reponse if needed
-	if *g.conf.DefaultResponse {
+	if _, replaced := customResponses["default"]; *g.conf.DefaultResponse && !replaced {
 		anySchemaName := g.reflect.formatMessageName(anyProtoDesc)
 		anySchema := wk.NewGoogleProtobufAnySchema(anySchemaName)
 		g.addSchemaToDocumentV3(d, anySchema)
@@ -674,6 +728,11 @@ func (g *OpenAPIv3Generator) buildOperationV3(
 		}
 
 		responses.ResponseOrReference = append(responses.ResponseOrReference, defaultResponse)
+	}
+
+	// Kolla: custom responses.
+	if err := g.addCustomResponses(responses, customResponses, operationID); err != nil {
+		return nil, "", err
 	}
 
 	// Create the operation.
@@ -745,7 +804,137 @@ func (g *OpenAPIv3Generator) buildOperationV3(
 			},
 		}
 	}
-	return op, path
+	return op, path, nil
+}
+
+// scopeParameters returns the file, service and method options whose build_tags match, least specific first.
+func (g *OpenAPIv3Generator) scopeParameters(fileParams, serviceParams, methodParams *open_api_extensions.Parameters) []*open_api_extensions.Parameters {
+	var scope []*open_api_extensions.Parameters
+	for _, params := range []*open_api_extensions.Parameters{fileParams, serviceParams, methodParams} {
+		if params != nil && g.matchesBuildTag(params.BuildTags) {
+			scope = append(scope, params)
+		}
+	}
+	return scope
+}
+
+// customHeaderParameters builds header parameters; more specific headers replace same-named ones.
+func (g *OpenAPIv3Generator) customHeaderParameters(scopeParams []*open_api_extensions.Parameters) []*v3.ParameterOrReference {
+	var headers []*open_api_extensions.Header
+	for _, params := range scopeParams {
+		for _, header := range params.Headers {
+			headers = slices.DeleteFunc(headers, func(h *open_api_extensions.Header) bool {
+				return h.GetName() == header.GetName()
+			})
+			headers = append(headers, header)
+		}
+	}
+
+	parameters := []*v3.ParameterOrReference{}
+	for _, header := range headers {
+		name := header.GetName()
+		headerDescription := header.GetDescription()
+		if header.Description == nil {
+			headerDescription = "Custom header: " + name
+		}
+
+		parameter := &v3.Parameter{
+			Name:        name,
+			In:          "header",
+			Description: headerDescription,
+			Required:    header.GetRequired(),
+			Schema: &v3.SchemaOrReference{
+				Oneof: &v3.SchemaOrReference_Schema{
+					Schema: &v3.Schema{
+						Type:    "string",
+						Pattern: header.GetPattern(),
+					},
+				},
+			},
+		}
+
+		if header.GetExample() != "" {
+			bytesValue := &wrappers.BytesValue{Value: []byte(header.GetExample())}
+			exampleValue := &anypb.Any{}
+			err := anypb.MarshalFrom(exampleValue, bytesValue, proto.MarshalOptions{})
+			if err != nil {
+				fmt.Println("Error marshalling example value: ", err)
+			} else {
+				parameter.Example = &v3.Any{Value: exampleValue, Yaml: header.GetExample()}
+			}
+		}
+
+		parameters = append(parameters, &v3.ParameterOrReference{
+			Oneof: &v3.ParameterOrReference_Parameter{Parameter: parameter},
+		})
+	}
+	return parameters
+}
+
+// customResponses merges the custom_responses in scope; more specific ones win.
+func (g *OpenAPIv3Generator) customResponses(scopeParams []*open_api_extensions.Parameters) map[string]*open_api_extensions.Response {
+	custom := map[string]*open_api_extensions.Response{}
+	for _, params := range scopeParams {
+		maps.Copy(custom, params.GetCustomResponses())
+	}
+	return custom
+}
+
+// addCustomResponses adds custom responses, replacing any existing response with the same code.
+func (g *OpenAPIv3Generator) addCustomResponses(responses *v3.Responses, custom map[string]*open_api_extensions.Response, operationID string) error {
+	if len(custom) == 0 {
+		return nil
+	}
+
+	for code, response := range custom {
+		description := response.GetDescription()
+		if description == "" {
+			if status, err := strconv.Atoi(code); err == nil {
+				description = http.StatusText(status)
+			}
+		}
+		if description == "" {
+			description = "Custom response"
+		}
+
+		var content *v3.MediaTypes
+		if ref := response.GetMessageRef(); ref != "" {
+			message, ok := g.messages[messageRefName(ref)]
+			if !ok {
+				return fmt.Errorf("%s: custom response %q: message_ref %q does not match any message; check the name and that its file is imported", operationID, code, ref)
+			}
+			_, content = g.reflect.responseContentForMessage(message.Desc)
+		}
+
+		responses.ResponseOrReference = slices.DeleteFunc(responses.ResponseOrReference, func(r *v3.NamedResponseOrReference) bool {
+			return r.Name == code
+		})
+		responses.ResponseOrReference = append(responses.ResponseOrReference, &v3.NamedResponseOrReference{
+			Name: code,
+			Value: &v3.ResponseOrReference{
+				Oneof: &v3.ResponseOrReference_Response{
+					Response: &v3.Response{Description: description, Content: content},
+				},
+			},
+		})
+	}
+
+	// Status codes in order, with the catch-all "default" last.
+	slices.SortFunc(responses.ResponseOrReference, func(a, b *v3.NamedResponseOrReference) int {
+		if (a.Name == "default") != (b.Name == "default") {
+			if a.Name == "default" {
+				return 1
+			}
+			return -1
+		}
+		return strings.Compare(a.Name, b.Name)
+	})
+	return nil
+}
+
+// matchesBuildTag reports whether options apply to the current build tag; untagged options always do.
+func (g *OpenAPIv3Generator) matchesBuildTag(tags []string) bool {
+	return len(tags) == 0 || slices.Contains(tags, *g.conf.BuildTag)
 }
 
 // addOperationToDocumentV3 adds an operation to the specified path/method.
@@ -774,110 +963,120 @@ func (g *OpenAPIv3Generator) addOperationToDocumentV3(d *v3.Document, op *v3.Ope
 		selectedPathItem.Value.Delete = op
 	case "PATCH":
 		selectedPathItem.Value.Patch = op
+	case "HEAD":
+		selectedPathItem.Value.Head = op
+	case "OPTIONS":
+		selectedPathItem.Value.Options = op
+	case "TRACE":
+		selectedPathItem.Value.Trace = op
 	}
 }
 
+// httpBinding is one HTTP mapping of an RPC method.
+type httpBinding struct {
+	method string
+	path   string
+	body   string
+}
+
+// httpBindings returns rule's binding and additional_bindings, skipping ones OpenAPI can't represent.
+func httpBindings(rule *annotations.HttpRule, methodFullName string) []httpBinding {
+	var bindings []httpBinding
+	for _, r := range append([]*annotations.HttpRule{rule}, rule.AdditionalBindings...) {
+		b := httpBinding{body: r.Body}
+		switch pattern := r.Pattern.(type) {
+		case *annotations.HttpRule_Get:
+			b.method, b.path = "GET", pattern.Get
+		case *annotations.HttpRule_Post:
+			b.method, b.path = "POST", pattern.Post
+		case *annotations.HttpRule_Put:
+			b.method, b.path = "PUT", pattern.Put
+		case *annotations.HttpRule_Delete:
+			b.method, b.path = "DELETE", pattern.Delete
+		case *annotations.HttpRule_Patch:
+			b.method, b.path = "PATCH", pattern.Patch
+		case *annotations.HttpRule_Custom:
+			switch kind := strings.ToUpper(pattern.Custom.GetKind()); kind {
+			case "HEAD", "OPTIONS", "TRACE":
+				b.method, b.path = kind, pattern.Custom.GetPath()
+			default:
+				log.Printf("skipping %s: custom HTTP method %q is not supported by OpenAPI", methodFullName, pattern.Custom.GetKind())
+				continue
+			}
+		default:
+			log.Printf("skipping %s: HTTP rule has no pattern", methodFullName)
+			continue
+		}
+		bindings = append(bindings, b)
+	}
+	return bindings
+}
+
 // addPathsToDocumentV3 adds paths from a specified file descriptor.
-func (g *OpenAPIv3Generator) addPathsToDocumentV3(d *v3.Document, services []*protogen.Service) {
-	for _, service := range services {
+func (g *OpenAPIv3Generator) addPathsToDocumentV3(d *v3.Document, file *protogen.File) error {
+	fileParams := parametersOption(file.Desc.Options(), open_api_extensions.E_FileParams)
+
+	for _, service := range file.Services {
 		annotationsCount := 0
 		// Annotated methods left out because they are internal_docs-only. A
 		// service whose every annotated method is one of these gets no tag, so
 		// its name and description stay out of builds that hide it entirely.
 		internalHiddenCount := 0
-		serviceHeadersOpts := proto.GetExtension(service.Desc.Options(), open_api_extensions.E_ServiceParams)
-		var params *open_api_extensions.Parameters
-		if serviceHeadersOpts != nil && serviceHeadersOpts != open_api_extensions.E_ServiceParams.InterfaceOf(open_api_extensions.E_ServiceParams.Zero()) {
-			params = serviceHeadersOpts.(*open_api_extensions.Parameters)
-		}
+		params := parametersOption(service.Desc.Options(), open_api_extensions.E_ServiceParams)
 		for _, method := range service.Methods {
-			comment := g.filterCommentString(method.Comments.Leading, false)
+			comment := g.filterMethodDescription(method.Comments.Leading)
 			inputMessage := method.Input
 			outputMessage := method.Output
 			summary := g.filterCommentStringForSummary(method.Comments.Leading, method.GoName) // Kolla
 			operationID := service.GoName + "_" + method.GoName
 
-			var path string
-			var methodName string
-			var body string
+			var bindings []httpBinding
 
-			var methodParams *open_api_extensions.Parameters
-			methodOptionsParams := proto.GetExtension(method.Desc.Options(), open_api_extensions.E_MethodParams)
-			if methodOptionsParams != nil && methodOptionsParams != open_api_extensions.E_MethodParams.InterfaceOf(open_api_extensions.E_MethodParams.Zero()) {
-				methodParams = methodOptionsParams.(*open_api_extensions.Parameters)
-			}
+			methodParams := parametersOption(method.Desc.Options(), open_api_extensions.E_MethodParams)
 
 			extHTTP := proto.GetExtension(method.Desc.Options(), annotations.E_Http)
 			if extHTTP != nil && extHTTP != annotations.E_Http.InterfaceOf(annotations.E_Http.Zero()) {
 				annotationsCount++
 
 				rule := extHTTP.(*annotations.HttpRule)
-				body = rule.Body
-				switch pattern := rule.Pattern.(type) {
-				case *annotations.HttpRule_Get:
-					path = pattern.Get
-					methodName = "GET"
-				case *annotations.HttpRule_Post:
-					path = pattern.Post
-					methodName = "POST"
-				case *annotations.HttpRule_Put:
-					path = pattern.Put
-					methodName = "PUT"
-				case *annotations.HttpRule_Delete:
-					path = pattern.Delete
-					methodName = "DELETE"
-				case *annotations.HttpRule_Patch:
-					path = pattern.Patch
-					methodName = "PATCH"
-				case *annotations.HttpRule_Custom:
-					path = "custom-unsupported"
-				default:
-					path = "unknown-unsupported"
-				}
+				bindings = httpBindings(rule, string(method.Desc.FullName()))
 			}
-			// If build tags exist, and a built tag is set in the protoc command, then only generate the method if the build tag is set
-			doGenerate := true
-			// If a build tag is set in the protoc command, then only generate the method if the build tag is set on the proto options
-			if *g.conf.BuildTag != "" && *g.conf.BuildTag == BuildTagPublicDocs {
+			// A public_docs build only generates methods tagged public_docs.
+			methodTags := methodParams.GetBuildTags()
+			doGenerate := *g.conf.BuildTag != BuildTagPublicDocs || slices.Contains(methodTags, *g.conf.BuildTag)
+			// An internal-docs method is opt-in for its build only. Without
+			// this an untagged build — the default for a public spec — would
+			// carry it, since untagged builds generate everything.
+			if slices.Contains(methodTags, BuildTagInternalDocs) && *g.conf.BuildTag != BuildTagInternalDocs {
 				doGenerate = false
-			}
-
-			if methodParams != nil && methodParams.BuildTags != nil && len(methodParams.BuildTags) > 0 {
-				for _, tag := range methodParams.BuildTags {
-					if tag == *g.conf.BuildTag {
-						doGenerate = true
-						break
-					}
-				}
-				// An internal-docs method is opt-in for its build only. Without
-				// this an untagged build — the default for a public spec — would
-				// carry it, since untagged builds generate everything.
-				for _, tag := range methodParams.BuildTags {
-					if tag == BuildTagInternalDocs && *g.conf.BuildTag != BuildTagInternalDocs {
-						doGenerate = false
-						if extHTTP != nil && extHTTP != annotations.E_Http.InterfaceOf(annotations.E_Http.Zero()) {
-							internalHiddenCount++
-						}
-						break
-					}
+				if extHTTP != nil && extHTTP != annotations.E_Http.InterfaceOf(annotations.E_Http.Zero()) {
+					internalHiddenCount++
 				}
 			}
 
 			if doGenerate {
-				if methodName != "" {
+				defaultHost := proto.GetExtension(service.Desc.Options(), annotations.E_DefaultHost).(string)
 
-					defaultHost := proto.GetExtension(service.Desc.Options(), annotations.E_DefaultHost).(string)
+				scopeParams := g.scopeParameters(fileParams, params, methodParams)
 
-					op, path2 := g.buildOperationV3(
-						d, summary, operationID, service.GoName, comment, defaultHost, path, body, inputMessage, outputMessage, params)
+				for i, binding := range bindings {
+					op, path2, err := g.buildOperationV3(
+						d, summary, operationID, service.GoName, comment, defaultHost, binding.path, binding.body, inputMessage, outputMessage, scopeParams)
+					if err != nil {
+						return err
+					}
 
 					// Merge any `Operation` annotations with the current
 					extOperation := proto.GetExtension(method.Desc.Options(), v3.E_Operation)
 					if extOperation != nil {
 						proto.Merge(op, extOperation.(*v3.Operation))
 					}
+					// Operation IDs must be unique.
+					if i > 0 {
+						op.OperationId = fmt.Sprintf("%s_%d", op.OperationId, i+1)
+					}
 
-					g.addOperationToDocumentV3(d, op, path2, methodName)
+					g.addOperationToDocumentV3(d, op, path2, binding.method)
 				}
 			}
 		}
@@ -887,6 +1086,7 @@ func (g *OpenAPIv3Generator) addPathsToDocumentV3(d *v3.Document, services []*pr
 			d.Tags = append(d.Tags, &v3.Tag{Name: service.GoName, Description: comment})
 		}
 	}
+	return nil
 }
 
 // addSchemaForMessageToDocumentV3 adds the schema to the document if required
@@ -908,8 +1108,10 @@ func (g *OpenAPIv3Generator) addSchemasForMessagesToDocumentV3(d *v3.Document, m
 
 		schemaName := g.reflect.formatMessageName(message.Desc)
 
-		// Only generate this if we need it and haven't already generated it.
-		if !contains(g.reflect.requiredSchemas, schemaName) ||
+		// Only generate this if we need it and haven't already generated it. Unreferenceable
+		// messages are skipped, since their names may collide with a referenced one.
+		if !g.referenceable[message.Desc.FullName()] ||
+			!contains(g.reflect.requiredSchemas, schemaName) ||
 			contains(g.generatedSchemas, schemaName) {
 			continue
 		}
@@ -980,10 +1182,8 @@ func (g *OpenAPIv3Generator) addSchemasForMessagesToDocumentV3(d *v3.Document, m
 			}
 
 			if schema, ok := fieldSchema.Oneof.(*v3.SchemaOrReference_Schema); ok {
-				if field.Desc.Name() == "name" && pattern != "" { // Kolla
-					pathParamsRX := regexp.MustCompile(`{[a-z_A-Z0-9]*}`)
-					rPattern := "^" + pathParamsRX.ReplaceAllString(pattern, "[a-z2-7]{26}") + "$"
-					schema.Schema.Pattern = rPattern
+				if field.Desc.Name() == "name" && pattern != "" && *g.conf.ResourceIDPattern != "" { // Kolla
+					schema.Schema.Pattern = resourceNamePattern(pattern, *g.conf.ResourceIDPattern)
 				}
 				// Get the field description from the comments.
 				schema.Schema.Description = g.filterCommentString(field.Comments.Leading, true)

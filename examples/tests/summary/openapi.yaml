@@ -60,6 +60,7 @@ components:
                     type: string
                 text:
                     type: string
+                    description: Plain text or markdown | the whole comment is the description, pipes included.
                 byte_string:
                     type: string
                     format: byte

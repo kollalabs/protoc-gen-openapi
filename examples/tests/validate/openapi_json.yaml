@@ -45,6 +45,73 @@ paths:
                         - REJECTED
                     type: string
                     format: enum
+                - name: inPriority
+                  in: query
+                  schema:
+                    enum:
+                        - LOW
+                        - URGENT
+                    type: string
+                    format: enum
+                - name: notInPriority
+                  in: query
+                  schema:
+                    enum:
+                        - LOW
+                        - URGENT
+                    type: string
+                    format: enum
+                - name: constPriority
+                  in: query
+                  schema:
+                    enum:
+                        - HIGH
+                    type: string
+                    format: enum
+                - name: offset
+                  in: query
+                  schema:
+                    maximum: !!float 5
+                    exclusiveMaximum: true
+                    minimum: !!float -5
+                    exclusiveMinimum: true
+                    type: integer
+                    format: sint32
+                - name: percent
+                  in: query
+                  schema:
+                    maximum: !!float 100
+                    type: integer
+                    format: uint32
+                    minimum: 0
+                - name: ratio
+                  in: query
+                  schema:
+                    maximum: 1.5
+                    exclusiveMinimum: true
+                    type: number
+                    format: double
+                    minimum: 0
+                - name: step
+                  in: query
+                  schema:
+                    maximum: 0.1
+                    minimum: 0.1
+                    type: number
+                    format: float
+                - name: negative
+                  in: query
+                  schema:
+                    maximum: !!float -1
+                    minimum: !!float -10
+                    type: integer
+                    format: int32
+                - name: outside
+                  in: query
+                  description: outside the range (below 5 or above 10), which minimum/maximum can't express
+                  schema:
+                    type: integer
+                    format: int32
             requestBody:
                 content:
                     application/json:
@@ -66,6 +133,11 @@ paths:
                                 $ref: '#/components/schemas/Status'
 components:
     schemas:
+        Attachment:
+            type: object
+            properties:
+                url:
+                    type: string
         GoogleProtobufAny:
             type: object
             properties:
@@ -104,6 +176,60 @@ components:
                     type: string
                     description: explicitly include the zero value
                     format: enum
+                inPriority:
+                    enum:
+                        - LOW
+                        - URGENT
+                    type: string
+                    format: enum
+                notInPriority:
+                    enum:
+                        - LOW
+                        - URGENT
+                    type: string
+                    format: enum
+                constPriority:
+                    enum:
+                        - HIGH
+                    type: string
+                    format: enum
+                offset:
+                    maximum: !!float 5
+                    exclusiveMaximum: true
+                    minimum: !!float -5
+                    exclusiveMinimum: true
+                    type: integer
+                    format: sint32
+                percent:
+                    maximum: !!float 100
+                    type: integer
+                    format: uint32
+                    minimum: 0
+                ratio:
+                    maximum: 1.5
+                    exclusiveMinimum: true
+                    type: number
+                    format: double
+                    minimum: 0
+                step:
+                    maximum: 0.1
+                    minimum: 0.1
+                    type: number
+                    format: float
+                negative:
+                    maximum: !!float -1
+                    minimum: !!float -10
+                    type: integer
+                    format: int32
+                outside:
+                    type: integer
+                    description: outside the range (below 5 or above 10), which minimum/maximum can't express
+                    format: int32
+                attachments:
+                    minItems: 1
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Attachment'
         Status:
             type: object
             properties:

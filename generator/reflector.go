@@ -34,6 +34,9 @@ type OpenAPIv3Reflector struct {
 	conf Configuration
 
 	requiredSchemas []string // Names of schemas which are used through references.
+
+	// schemaNames holds the names of messages whose default schema name collides.
+	schemaNames map[protoreflect.FullName]string
 }
 
 // NewOpenAPIv3Reflector creates a new reflector.
@@ -60,7 +63,64 @@ func getMessageName(message protoreflect.MessageDescriptor) string {
 	return prefix + string(message.Name())
 }
 
+// getNestedMessageName joins the names of all enclosing messages, e.g. Outer_Middle_Inner.
+func getNestedMessageName(message protoreflect.MessageDescriptor) string {
+	name := string(message.Name())
+	for parent := message.Parent(); parent != nil; parent = parent.Parent() {
+		if _, ok := parent.(protoreflect.MessageDescriptor); !ok {
+			break
+		}
+		name = string(parent.Name()) + "_" + name
+	}
+	return name
+}
+
+// assignSchemaNames makes the schema names of messages unique. On a collision, a lone generated
+// message keeps the default name and the others are fully qualified.
+func (r *OpenAPIv3Reflector) assignSchemaNames(messages []protoreflect.MessageDescriptor, generated func(protoreflect.MessageDescriptor) bool) {
+	byName := map[string][]protoreflect.MessageDescriptor{}
+	for _, message := range messages {
+		name := r.defaultMessageName(message)
+		byName[name] = append(byName[name], message)
+	}
+
+	r.schemaNames = map[protoreflect.FullName]string{}
+	for _, group := range byName {
+		if len(group) < 2 {
+			continue
+		}
+		generatedCount := 0
+		for _, message := range group {
+			if generated(message) {
+				generatedCount++
+			}
+		}
+		for _, message := range group {
+			if generated(message) && generatedCount == 1 {
+				continue
+			}
+			r.schemaNames[message.FullName()] = r.qualifiedMessageName(message)
+		}
+	}
+}
+
 func (r *OpenAPIv3Reflector) formatMessageName(message protoreflect.MessageDescriptor) string {
+	if name, ok := r.schemaNames[message.FullName()]; ok {
+		return name
+	}
+	return r.defaultMessageName(message)
+}
+
+// qualifiedMessageName includes the package and all enclosing messages, e.g. pkg.v1.Outer_Middle_Inner.
+func (r *OpenAPIv3Reflector) qualifiedMessageName(message protoreflect.MessageDescriptor) string {
+	name := getNestedMessageName(message)
+	if *r.conf.Naming == "json" && len(name) > 1 {
+		name = strings.ToUpper(name[0:1]) + name[1:]
+	}
+	return string(message.ParentFile().Package()) + "." + name
+}
+
+func (r *OpenAPIv3Reflector) defaultMessageName(message protoreflect.MessageDescriptor) string {
 	typeName := r.fullMessageTypeName(message)
 
 	name := r.getMessageName(message)
