@@ -3,40 +3,28 @@
 
 openapi: 3.0.3
 info:
-    title: Messaging API
+    title: Contacts API
     version: 0.0.1
 paths:
-    /v1/messages/{message_id}:
-        patch:
+    /v1/contacts/{contact_id}:
+        get:
             tags:
-                - Messaging
-            summary: Get Message Summary
-            description: This function gets a message.
-            operationId: Messaging_GetMessaage
+                - Contacts
+            summary: GetContact
+            operationId: Contacts_GetContact
             parameters:
-                - name: message_id
+                - name: contact_id
                   in: path
                   required: true
                   schema:
                     type: string
-                - name: FileHeader
-                  in: header
-                  description: 'Custom header: FileHeader'
-                  schema:
-                    type: string
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            type: string
-                required: true
             responses:
                 "200":
                     description: OK
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/Message'
+                                $ref: '#/components/schemas/Contact'
                 default:
                     description: Default error response
                     content:
@@ -45,6 +33,24 @@ paths:
                                 $ref: '#/components/schemas/Status'
 components:
     schemas:
+        Address:
+            type: object
+            properties:
+                city:
+                    type: string
+        Contact:
+            type: object
+            properties:
+                email:
+                    type: string
+                external:
+                    $ref: '#/components/schemas/tests.schemacollision.other.v1.Contact'
+                address:
+                    $ref: '#/components/schemas/Address'
+                inner:
+                    $ref: '#/components/schemas/Middle_Inner'
+                other_inner:
+                    $ref: '#/components/schemas/tests.schemacollision.other.v1.Outer_Middle_Inner'
         GoogleProtobufAny:
             type: object
             properties:
@@ -53,12 +59,10 @@ components:
                     description: The type of the serialized message.
             additionalProperties: true
             description: Contains an arbitrary serialized message along with a @type that describes the type of the serialized message.
-        Message:
+        Middle_Inner:
             type: object
             properties:
-                message_id:
-                    type: string
-                text:
+                value:
                     type: string
         Status:
             type: object
@@ -76,5 +80,17 @@ components:
                         $ref: '#/components/schemas/GoogleProtobufAny'
                     description: A list of messages that carry the error details.  There is a common set of message types for APIs to use.
             description: 'The `Status` type defines a logical error model that is suitable for different programming environments, including REST APIs and RPC APIs. It is used by [gRPC](https://github.com/grpc). Each `Status` message contains three pieces of data: error code, error message, and error details. You can find out more about this error model and how to work with it in the [API Design Guide](https://cloud.google.com/apis/design/errors).'
+        tests.schemacollision.other.v1.Contact:
+            type: object
+            properties:
+                url:
+                    type: string
+            description: Same name as the generated package's Contact; referenced, so it must be package-qualified.
+        tests.schemacollision.other.v1.Outer_Middle_Inner:
+            type: object
+            properties:
+                other_value:
+                    type: string
+            description: Would be named Middle_Inner if only the direct parent were used.
 tags:
-    - name: Messaging
+    - name: Contacts

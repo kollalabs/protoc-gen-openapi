@@ -30,6 +30,8 @@ in a way that won't trip anyone up.
 * [Validation (protoc-gen-validate)](#validation)
 * [Google Field Behavior Annotations](#google-field-behavior-annotations)
 * [OAS3 header support](#oas3-header-support)
+* [Custom responses](#custom-responses)
+* [Resource name pattern](#resource-name-pattern)
 
 ### Better Enum Support
 Enums work better by using string values of proto enums instead of ints.
@@ -134,15 +136,22 @@ String
 - max_len
 - min_len
 
-Int32
-- gte
-- lte
+Numeric (all int, uint, sint, fixed, float and double types)
+- const
+- gt, gte (`minimum`, `exclusiveMinimum`)
+- lt, lte (`maximum`, `exclusiveMaximum`)
 
-Int64
-- gte
-- lte
+Enum
+- const
+- in
+- not_in
 
-Adding more can easily be done in the function `addValidationRules` in `/generator/openapi-v3.yaml`
+Repeated
+- min_items
+- max_items
+- items (scalar item rules)
+
+Adding more can easily be done in the function `addValidationRules` in `/generator/validate.go`
 
 ### Google Field Behavior Annotations
 
@@ -153,3 +162,32 @@ Adding more can easily be done in the function `addValidationRules` in `/generat
 
 ### OAS3 header support
 
+Add header parameters with `openapi.file_params`, `openapi.service_params` or `openapi.method_params`
+(see [openapi/annotations.proto](openapi/annotations.proto)). A method header replaces a service or file header
+with the same name.
+
+File and service options only apply when their `build_tags` (if any) include the `build_tag` plugin option.
+A method's `build_tags` decide whether the method is generated at all.
+
+### Custom responses
+
+Add responses to every operation in a file, service or method with `custom_responses`, keyed by status code.
+A response replaces a generated one with the same code, such as the `google.rpc.Status` `default` response.
+Build tags apply as for headers.
+
+```proto
+option (openapi.service_params) = {
+    custom_responses: {
+        key: "403"
+        value: {
+            description: "Forbidden"
+            message_ref: "my.pkg.v1.ErrorResponse"
+        }
+    }
+};
+```
+
+### Resource name pattern
+
+`name` fields of messages with a `google.api.resource` pattern get a regex `pattern`, matching each variable
+with `resource_id_pattern` (default `[a-z2-7]{26}`). Set `resource_id_pattern=` to omit it.

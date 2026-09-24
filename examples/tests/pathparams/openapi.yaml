@@ -6,6 +6,36 @@ info:
     title: Messaging API
     version: 0.0.1
 paths:
+    /v1/message_ids/{message_id}:
+        get:
+            tags:
+                - Messaging
+            summary: GetMessageById
+            description: Literal segment contains the field name; only the placeholder may be renamed.
+            operationId: Messaging_GetMessageById
+            parameters:
+                - name: message_id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: user_id
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Message'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
     /v1/messages/{message_id}:
         get:
             tags:
@@ -65,6 +95,39 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/Status'
+    /v1/users/{user_id}/files/{message_id}:
+        get:
+            tags:
+                - Messaging
+            summary: GetMessageByPath
+            description: 'Multi-segment wildcard (issue #69): a single parameter whose value may contain slashes.'
+            operationId: Messaging_GetMessageByPath
+            parameters:
+                - name: user_id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: message_id
+                  in: path
+                  required: true
+                  allowReserved: true
+                  schema:
+                    pattern: .+
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Message'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
     /v1/users/{user_id}/messages/{message_id}:
         get:
             tags:
@@ -79,6 +142,71 @@ paths:
                     type: string
                 - name: message_id
                   in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Message'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+    /v1/users/{user_id}/threads/{thread}:
+        get:
+            tags:
+                - Messaging
+            summary: GetThreadMessage
+            description: Simple and named path parameters mixed in one template.
+            operationId: Messaging_GetThreadMessage
+            parameters:
+                - name: user_id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: thread
+                  in: path
+                  description: The thread id.
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Message'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+    /v2/users/{user}/messages/{message}:
+        get:
+            tags:
+                - Messaging
+            summary: GetNamedMessage
+            description: Multiple named path parameters in one template.
+            operationId: Messaging_GetNamedMessage
+            parameters:
+                - name: user
+                  in: path
+                  description: The user id.
+                  required: true
+                  schema:
+                    type: string
+                - name: message
+                  in: path
+                  description: The message id.
                   required: true
                   schema:
                     type: string

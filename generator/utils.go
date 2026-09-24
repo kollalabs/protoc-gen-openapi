@@ -16,6 +16,7 @@
 package generator
 
 import (
+	"regexp"
 	"strings"
 
 	"google.golang.org/protobuf/compiler/protogen"
@@ -68,4 +69,21 @@ func (g *OpenAPIv3Generator) filterCommentStringForSummary(c protogen.Comments, 
 	}
 	comment = g.linterRulePattern.ReplaceAllString(comment, "")
 	return strings.TrimSpace(comment)
+}
+
+var resourcePatternVariable = regexp.MustCompile(`{[a-z_A-Z0-9]*}`)
+
+// resourceNamePattern converts a resource pattern like "shelves/{shelf}" into an anchored regex.
+func resourceNamePattern(pattern string, idPattern string) string {
+	var b strings.Builder
+	b.WriteString("^")
+	last := 0
+	for _, loc := range resourcePatternVariable.FindAllStringIndex(pattern, -1) {
+		b.WriteString(regexp.QuoteMeta(pattern[last:loc[0]]))
+		b.WriteString(idPattern)
+		last = loc[1]
+	}
+	b.WriteString(regexp.QuoteMeta(pattern[last:]))
+	b.WriteString("$")
+	return b.String()
 }

@@ -34,6 +34,34 @@ service Messaging {
     };
   }
 
+  // Literal segment contains the field name; only the placeholder may be renamed.
+  rpc GetMessageById(GetMessageRequest) returns (Message) {
+    option (google.api.http) = {
+      get : "/v1/message_ids/{message_id}"
+    };
+  }
+
+  // Simple and named path parameters mixed in one template.
+  rpc GetThreadMessage(GetMessageRequest) returns (Message) {
+    option (google.api.http) = {
+      get : "/v1/users/{user_id}/{message_id=threads/*}"
+    };
+  }
+
+  // Multiple named path parameters in one template.
+  rpc GetNamedMessage(GetMessageRequest) returns (Message) {
+    option (google.api.http) = {
+      get : "/v2/{user_id=users/*}/{message_id=messages/*}"
+    };
+  }
+
+  // Multi-segment wildcard (issue #69): a single parameter whose value may contain slashes.
+  rpc GetMessageByPath(GetMessageRequest) returns (Message) {
+    option (google.api.http) = {
+      get : "/v1/users/{user_id}/files/{message_id=**}"
+    };
+  }
+
   rpc CreateMessage(Message) returns (Message) {
     option (google.api.http) = {
       post : "/v1/messages/{message_id}"

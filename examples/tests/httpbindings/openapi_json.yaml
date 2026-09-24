@@ -6,41 +6,12 @@ info:
     title: Messaging API
     version: 1.2.3
 paths:
-    /v1/message_ids/{messageId}:
-        get:
-            tags:
-                - Messaging
-            summary: GetMessageById
-            description: Literal segment contains the field name; only the placeholder may be renamed.
-            operationId: Messaging_GetMessageById
-            parameters:
-                - name: messageId
-                  in: path
-                  required: true
-                  schema:
-                    type: string
-                - name: userId
-                  in: query
-                  schema:
-                    type: string
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Message'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
     /v1/messages/{messageId}:
         get:
             tags:
                 - Messaging
             summary: GetMessage
+            description: Each additional binding becomes its own operation with a numbered operation ID.
             operationId: Messaging_GetMessage
             parameters:
                 - name: messageId
@@ -65,23 +36,22 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/Status'
-        post:
+        head:
             tags:
                 - Messaging
-            summary: CreateMessage
-            operationId: Messaging_CreateMessage
+            summary: CheckMessage
+            description: Custom HEAD maps onto the path item's head operation.
+            operationId: Messaging_CheckMessage
             parameters:
                 - name: messageId
                   in: path
                   required: true
                   schema:
                     type: string
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/Message'
-                required: true
+                - name: userId
+                  in: query
+                  schema:
+                    type: string
             responses:
                 "200":
                     description: OK
@@ -95,26 +65,19 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/Status'
-    /v1/users/{userId}/files/{messageId}:
-        get:
+    /v1/messages:lookup:
+        post:
             tags:
                 - Messaging
-            summary: GetMessageByPath
-            description: 'Multi-segment wildcard (issue #69): a single parameter whose value may contain slashes.'
-            operationId: Messaging_GetMessageByPath
-            parameters:
-                - name: userId
-                  in: path
-                  required: true
-                  schema:
-                    type: string
-                - name: messageId
-                  in: path
-                  required: true
-                  allowReserved: true
-                  schema:
-                    pattern: .+
-                    type: string
+            summary: GetMessage
+            description: Each additional binding becomes its own operation with a numbered operation ID.
+            operationId: Messaging_GetMessage_3
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/GetMessageRequest'
+                required: true
             responses:
                 "200":
                     description: OK
@@ -132,8 +95,9 @@ paths:
         get:
             tags:
                 - Messaging
-            summary: GetUserMessage
-            operationId: Messaging_GetUserMessage
+            summary: GetMessage
+            description: Each additional binding becomes its own operation with a numbered operation ID.
+            operationId: Messaging_GetMessage_2
             parameters:
                 - name: userId
                   in: path
@@ -142,71 +106,6 @@ paths:
                     type: string
                 - name: messageId
                   in: path
-                  required: true
-                  schema:
-                    type: string
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Message'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
-    /v1/users/{userId}/threads/{thread}:
-        get:
-            tags:
-                - Messaging
-            summary: GetThreadMessage
-            description: Simple and named path parameters mixed in one template.
-            operationId: Messaging_GetThreadMessage
-            parameters:
-                - name: userId
-                  in: path
-                  required: true
-                  schema:
-                    type: string
-                - name: thread
-                  in: path
-                  description: The thread id.
-                  required: true
-                  schema:
-                    type: string
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Message'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
-    /v2/users/{user}/messages/{message}:
-        get:
-            tags:
-                - Messaging
-            summary: GetNamedMessage
-            description: Multiple named path parameters in one template.
-            operationId: Messaging_GetNamedMessage
-            parameters:
-                - name: user
-                  in: path
-                  description: The user id.
-                  required: true
-                  schema:
-                    type: string
-                - name: message
-                  in: path
-                  description: The message id.
                   required: true
                   schema:
                     type: string
@@ -225,6 +124,13 @@ paths:
                                 $ref: '#/components/schemas/Status'
 components:
     schemas:
+        GetMessageRequest:
+            type: object
+            properties:
+                messageId:
+                    type: string
+                userId:
+                    type: string
         GoogleProtobufAny:
             type: object
             properties:
@@ -237,8 +143,6 @@ components:
             type: object
             properties:
                 messageId:
-                    type: string
-                userId:
                     type: string
                 content:
                     type: string

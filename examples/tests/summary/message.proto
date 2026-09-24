@@ -34,6 +34,7 @@ service Messaging {
 }
 message Message {
     string message_id = 1;
+    // Plain text or markdown | the whole comment is the description, pipes included.
     string text = 2;
     bytes byte_string = 3;
 }
