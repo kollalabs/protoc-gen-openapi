@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/devcontainers/base:bullseye
+FROM mcr.microsoft.com/devcontainers/base:bookworm
 
 ARG TARGETARCH
 ARG DEBIAN_FRONTEND=noninteractive
