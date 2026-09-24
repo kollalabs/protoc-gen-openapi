@@ -44,6 +44,20 @@ service Messaging {
     }
 }
 
+// A service whose every method is internal: a build that carries none of
+// them must not carry the service's tag (and this description) either.
+service Feed {
+    // List Feed | Internal feed; kept out of public documentation.
+    rpc ListFeed(ListChangesRequest) returns(ListChangesResponse) {
+        option (google.api.http) = {
+            get: "/v1/feed"
+        };
+        option (openapi.method_params) = {
+            build_tags: ["internal_docs"]
+        };
+    }
+}
+
 message GetMessageRequest {
     string message_id = 1;
 }

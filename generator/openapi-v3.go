@@ -780,7 +780,10 @@ func (g *OpenAPIv3Generator) addOperationToDocumentV3(d *v3.Document, op *v3.Ope
 // addPathsToDocumentV3 adds paths from a specified file descriptor.
 func (g *OpenAPIv3Generator) addPathsToDocumentV3(d *v3.Document, services []*protogen.Service) {
 	for _, service := range services {
-		annotationsCount := 0
+		// The service's tag is only worth emitting when the build carries at
+		// least one of its operations: a tag for an empty service would put the
+		// service's name and description into a spec none of its methods are in.
+		generatedCount := 0
 		serviceHeadersOpts := proto.GetExtension(service.Desc.Options(), open_api_extensions.E_ServiceParams)
 		var params *open_api_extensions.Parameters
 		if serviceHeadersOpts != nil && serviceHeadersOpts != open_api_extensions.E_ServiceParams.InterfaceOf(open_api_extensions.E_ServiceParams.Zero()) {
@@ -805,8 +808,6 @@ func (g *OpenAPIv3Generator) addPathsToDocumentV3(d *v3.Document, services []*pr
 
 			extHTTP := proto.GetExtension(method.Desc.Options(), annotations.E_Http)
 			if extHTTP != nil && extHTTP != annotations.E_Http.InterfaceOf(annotations.E_Http.Zero()) {
-				annotationsCount++
-
 				rule := extHTTP.(*annotations.HttpRule)
 				body = rule.Body
 				switch pattern := rule.Pattern.(type) {
@@ -871,11 +872,12 @@ func (g *OpenAPIv3Generator) addPathsToDocumentV3(d *v3.Document, services []*pr
 					}
 
 					g.addOperationToDocumentV3(d, op, path2, methodName)
+					generatedCount++
 				}
 			}
 		}
 
-		if annotationsCount > 0 {
+		if generatedCount > 0 {
 			comment := g.filterCommentString(service.Comments.Leading, false)
 			d.Tags = append(d.Tags, &v3.Tag{Name: service.GoName, Description: comment})
 		}

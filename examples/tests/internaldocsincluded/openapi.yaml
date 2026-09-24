@@ -3,11 +3,7 @@
 
 openapi: 3.0.3
 info:
-    title: Messaging API
-    description: |-
-        A service with one public method and one that only internal documentation
-         may show. The same proto is generated once without a build tag (the public
-         method only) and once with build_tag=internal_docs (both).
+    title: ""
     version: 0.0.1
 paths:
     /v1/changes:
@@ -17,6 +13,31 @@ paths:
             summary: List Changes
             description: Internal change feed; kept out of public documentation.
             operationId: Messaging_ListChanges
+            parameters:
+                - name: cursor
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListChangesResponse'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+    /v1/feed:
+        get:
+            tags:
+                - Feed
+            summary: List Feed
+            description: Internal feed; kept out of public documentation.
+            operationId: Feed_ListFeed
             parameters:
                 - name: cursor
                   in: query
@@ -104,4 +125,12 @@ components:
                     description: A list of messages that carry the error details.  There is a common set of message types for APIs to use.
             description: 'The `Status` type defines a logical error model that is suitable for different programming environments, including REST APIs and RPC APIs. It is used by [gRPC](https://github.com/grpc). Each `Status` message contains three pieces of data: error code, error message, and error details. You can find out more about this error model and how to work with it in the [API Design Guide](https://cloud.google.com/apis/design/errors).'
 tags:
+    - name: Feed
+      description: |-
+        A service whose every method is internal: a build that carries none of
+         them must not carry the service's tag (and this description) either.
     - name: Messaging
+      description: |-
+        A service with one public method and one that only internal documentation
+         may show. The same proto is generated once without a build tag (the public
+         method only) and once with build_tag=internal_docs (both).

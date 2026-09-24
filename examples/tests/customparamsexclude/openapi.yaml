@@ -3,10 +3,8 @@
 
 openapi: 3.0.3
 info:
-    title: Messaging API
+    title: ""
     version: 0.0.1
 paths: {}
 components:
     schemas: {}
-tags:
-    - name: Messaging
