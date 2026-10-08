@@ -14,7 +14,7 @@ google.golang.org/genproto/googleapis/api v0.0.0-20250811160224-6b04f9b4fc78 h1:
 google.golang.org/genproto/googleapis/api v0.0.0-20250811160224-6b04f9b4fc78/go.mod h1:y2yVLIE/CSMCPXaHnSKXxu1spLPnglFLegmgdY23uuE=
 google.golang.org/genproto/googleapis/rpc v0.0.0-20250811160224-6b04f9b4fc78 h1:OjEX45SgbG4tlXigPg4fhTP6R3MFf3MZ+HidmS2GN9s=
 google.golang.org/genproto/googleapis/rpc v0.0.0-20250811160224-6b04f9b4fc78/go.mod h1:gw1tLEfykwDz2ET4a12jcXt4couGAm7IwsVaTy0Sflo=
-google.golang.org/protobuf v1.36.11 h1:fV6ZwhNocDyBLK0dj+fg8ektcVegBBuEolpbTQyBNVE=
-google.golang.org/protobuf v1.36.11/go.mod h1:HTf+CrKn2C3g5S8VImy6tdcUvCska2kB7j23XfzDpco=
+google.golang.org/protobuf v1.36.12 h1:pJOKDDOyeXErUroCihFAd5LQuwXBSpVnKGrj5o/fwxc=
+google.golang.org/protobuf v1.36.12/go.mod h1:HTf+CrKn2C3g5S8VImy6tdcUvCska2kB7j23XfzDpco=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 h1:yhCVgyC4o1eVCa2tZl7eS0r+SDo693bJlVdllGtEeKM=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
