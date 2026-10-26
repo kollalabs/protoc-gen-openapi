@@ -8,6 +8,10 @@ on:
 
 jobs:
   devcontainer:
+    permissions:
+      contents: read
+      # the reusable workflow pushes the devcontainer image to ghcr.io
+      packages: write
     uses: kollalabs/protoc-gen-openapi/.github/workflows/kolla-build-devcontainer.yml@main
 
   check-gen:
